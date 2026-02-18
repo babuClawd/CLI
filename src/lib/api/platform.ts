@@ -110,3 +110,20 @@ export async function getProjectApiKey(projectId: string, apiUrl?: string): Prom
   return data.access_api_key;
 }
 
+export async function createProject(
+  orgId: string,
+  name: string,
+  region?: string,
+  apiUrl?: string,
+): Promise<Project> {
+  const body: Record<string, string> = { name };
+  if (region) body.region = region;
+
+  const res = await platformFetch(`/organizations/v1/${orgId}/projects`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }, apiUrl);
+  const data = await res.json();
+  return (data as any).project ?? data;
+}
+

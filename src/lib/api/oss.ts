@@ -14,6 +14,12 @@ function requireProjectConfig(): ProjectConfig {
  * Unified OSS API fetch. Uses API key as Bearer token for all requests,
  * which grants superadmin access (SQL execution, bucket management, etc.).
  */
+export async function getAnonKey(): Promise<string> {
+  const res = await ossFetch('/api/auth/tokens/anon', { method: 'POST' });
+  const data = await res.json();
+  return (data as any).accessToken;
+}
+
 export async function ossFetch(
   path: string,
   options: RequestInit = {},

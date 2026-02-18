@@ -17,6 +17,7 @@ import { registerFunctionsInvokeCommand } from './commands/functions/invoke.js';
 import { registerStorageBucketsCommand } from './commands/storage/buckets.js';
 import { registerStorageUploadCommand } from './commands/storage/upload.js';
 import { registerStorageDownloadCommand } from './commands/storage/download.js';
+import { registerCreateCommand } from './commands/create.js';
 
 const program = new Command();
 
@@ -32,10 +33,11 @@ program
   .option('--api-url <url>', 'Override Platform API URL')
   .option('-y, --yes', 'Skip confirmation prompts');
 
-// Auth commands
+// Top-level commands
 registerLoginCommand(program);
 registerLogoutCommand(program);
 registerWhoamiCommand(program);
+registerCreateCommand(program);
 
 // Orgs commands
 const orgsCmd = program.command('orgs').description('Manage organizations');
