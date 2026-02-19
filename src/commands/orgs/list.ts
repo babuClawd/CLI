@@ -23,9 +23,9 @@ export function registerOrgsCommands(orgsCmd: Command): void {
           }
           outputTable(
             ['ID', 'Name', 'Role'],
-            orgs.map((o: any) => [
-              o.organization?.id ?? o.id,
-              o.organization?.name ?? o.name,
+            orgs.map((o) => [
+              o.organization.id,
+              o.organization.name,
               o.role ?? '-',
             ]),
           );

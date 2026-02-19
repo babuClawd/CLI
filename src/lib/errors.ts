@@ -1,3 +1,5 @@
+import type { Command } from 'commander';
+
 export class CLIError extends Error {
   constructor(
     message: string,
@@ -52,20 +54,20 @@ export function handleError(err: unknown, json: boolean): never {
   process.exit(1);
 }
 
-export function getJsonFlag(cmd: any): boolean {
-  const root = cmd?.parent ?? cmd;
-  while (root?.parent) {
-    return getJsonFlag(root.parent);
-  }
-  return root?.opts?.()?.json ?? false;
-}
-
-export function getRootOpts(cmd: any): { json: boolean; projectId?: string; apiUrl?: string; yes: boolean } {
-  let root = cmd;
-  while (root?.parent) {
+export function getJsonFlag(cmd: Command): boolean {
+  let root: Command = cmd;
+  while (root.parent) {
     root = root.parent;
   }
-  const opts = root?.opts?.() ?? {};
+  return root.opts().json ?? false;
+}
+
+export function getRootOpts(cmd: Command): { json: boolean; projectId?: string; apiUrl?: string; yes: boolean } {
+  let root: Command = cmd;
+  while (root.parent) {
+    root = root.parent;
+  }
+  const opts = root.opts();
   return {
     json: opts.json ?? false,
     projectId: opts.projectId,

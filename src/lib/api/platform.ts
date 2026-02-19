@@ -34,15 +34,15 @@ async function platformFetch(
     headers.Authorization = `Bearer ${newToken}`;
     const retryRes = await fetch(`${baseUrl}${path}`, { ...options, headers });
     if (!retryRes.ok) {
-      const err = await retryRes.json().catch(() => ({}));
-      throw new CLIError((err as any).error ?? `Request failed: ${retryRes.status}`, retryRes.status === 403 ? 5 : 1);
+      const err = await retryRes.json().catch(() => ({})) as { error?: string };
+      throw new CLIError(err.error ?? `Request failed: ${retryRes.status}`, retryRes.status === 403 ? 5 : 1);
     }
     return retryRes;
   }
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new CLIError((err as any).error ?? `Request failed: ${res.status}`, res.status === 403 ? 5 : 1);
+    const err = await res.json().catch(() => ({})) as { error?: string };
+    throw new CLIError(err.error ?? `Request failed: ${res.status}`, res.status === 403 ? 5 : 1);
   }
 
   return res;
@@ -50,7 +50,7 @@ async function platformFetch(
 
 // --- Auth ---
 
-export async function login(email: string, password: string, apiUrl?: string): Promise<LoginResponse> {
+export async function login(email: string, password: string, apiUrl?: string): Promise<LoginResponse & { _refreshToken?: string }> {
   const baseUrl = getPlatformApiUrl(apiUrl);
   const res = await fetch(`${baseUrl}/auth/v1/login`, {
     method: 'POST',
@@ -59,8 +59,8 @@ export async function login(email: string, password: string, apiUrl?: string): P
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new AuthError((err as any).error ?? 'Login failed. Check your email and password.');
+    const err = await res.json().catch(() => ({})) as { error?: string };
+    throw new AuthError(err.error ?? 'Login failed. Check your email and password.');
   }
 
   // Extract refresh token from Set-Cookie header
@@ -77,30 +77,30 @@ export async function login(email: string, password: string, apiUrl?: string): P
 
 export async function getProfile(apiUrl?: string): Promise<User> {
   const res = await platformFetch('/auth/v1/profile', {}, apiUrl);
-  const data = await res.json();
-  return (data as any).user ?? data;
+  const data = await res.json() as { user?: User };
+  return data.user ?? (data as unknown as User);
 }
 
 // --- Organizations ---
 
 export async function listOrganizations(apiUrl?: string): Promise<OrgMembership[]> {
   const res = await platformFetch('/organizations/v1', {}, apiUrl);
-  const data = await res.json();
-  return (data as any).organizations ?? data;
+  const data = await res.json() as { organizations?: OrgMembership[] };
+  return data.organizations ?? (data as unknown as OrgMembership[]);
 }
 
 // --- Projects ---
 
 export async function listProjects(orgId: string, apiUrl?: string): Promise<Project[]> {
   const res = await platformFetch(`/organizations/v1/${orgId}/projects`, {}, apiUrl);
-  const data = await res.json();
-  return (data as any).projects ?? data;
+  const data = await res.json() as { projects?: Project[] };
+  return data.projects ?? (data as unknown as Project[]);
 }
 
 export async function getProject(projectId: string, apiUrl?: string): Promise<Project> {
   const res = await platformFetch(`/projects/v1/${projectId}`, {}, apiUrl);
-  const data = await res.json();
-  return (data as any).project ?? data;
+  const data = await res.json() as { project?: Project };
+  return data.project ?? (data as unknown as Project);
 }
 
 export async function getProjectApiKey(projectId: string, apiUrl?: string): Promise<string> {
@@ -122,9 +122,7 @@ export async function createProject(
     method: 'POST',
     body: JSON.stringify(body),
   }, apiUrl);
-  const data = await res.json();
-  return (data as any).project ?? data;
+  const data = await res.json() as { project?: Project };
+  return data.project ?? (data as unknown as Project);
 }
-
-
 

@@ -76,13 +76,13 @@ export function registerCreateCommand(program: Command): void {
             throw new CLIError('No organizations found.');
           }
           if (orgs.length === 1) {
-            orgId = (orgs[0] as any).organization?.id ?? (orgs[0] as any).id;
+            orgId = orgs[0].organization.id;
           } else if (!json) {
             const selected = await clack.select({
               message: 'Select an organization:',
-              options: orgs.map((o: any) => ({
-                value: o.organization?.id ?? o.id,
-                label: o.organization?.name ?? o.name,
+              options: orgs.map((o) => ({
+                value: o.organization.id,
+                label: o.organization.name,
               })),
             });
             if (clack.isCancel(selected)) process.exit(0);

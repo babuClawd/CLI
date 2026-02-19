@@ -30,7 +30,7 @@ export function registerLoginCommand(program: Command): void {
           await loginWithOAuth(json, apiUrl, opts.clientId);
         }
       } catch (err) {
-        if ((err as any)?.message?.includes('cancelled')) {
+        if (err instanceof Error && err.message.includes('cancelled')) {
           process.exit(0);
         }
         handleError(err, json);
@@ -77,7 +77,7 @@ async function loginWithEmail(json: boolean, apiUrl?: string): Promise<void> {
     const result = await platformLogin(email as string, password as string, apiUrl);
     const creds: StoredCredentials = {
       access_token: result.token,
-      refresh_token: (result as any)._refreshToken ?? '',
+      refresh_token: result._refreshToken ?? '',
       user: result.user,
     };
     saveCredentials(creds);
@@ -88,7 +88,7 @@ async function loginWithEmail(json: boolean, apiUrl?: string): Promise<void> {
     const result = await platformLogin(email as string, password as string, apiUrl);
     const creds: StoredCredentials = {
       access_token: result.token,
-      refresh_token: (result as any)._refreshToken ?? '',
+      refresh_token: result._refreshToken ?? '',
       user: result.user,
     };
     saveCredentials(creds);

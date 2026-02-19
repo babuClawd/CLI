@@ -48,8 +48,8 @@ export function registerStorageUploadCommand(storageCmd: Command): void {
         });
 
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new CLIError((err as any).error ?? `Upload failed: ${res.status}`);
+          const err = await res.json().catch(() => ({})) as { error?: string };
+          throw new CLIError(err.error ?? `Upload failed: ${res.status}`);
         }
 
         const data = await res.json();

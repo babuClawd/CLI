@@ -18,9 +18,9 @@ export function registerRecordsCreateCommand(recordsCmd: Command): void {
           throw new CLIError('--data is required. Example: --data \'{"name":"John"}\'');
         }
 
-        let records: any[];
+        let records: unknown[];
         try {
-          const parsed = JSON.parse(opts.data);
+          const parsed = JSON.parse(opts.data) as unknown;
           records = Array.isArray(parsed) ? parsed : [parsed];
         } catch {
           throw new CLIError('Invalid JSON in --data. Provide a JSON object or array.');
@@ -34,12 +34,12 @@ export function registerRecordsCreateCommand(recordsCmd: Command): void {
           },
         );
 
-        const data = await res.json();
+        const data = await res.json() as { data?: unknown[] };
 
         if (json) {
           outputJson(data);
         } else {
-          const created = (data as any).data ?? (Array.isArray(data) ? data : []);
+          const created = data.data ?? [];
           outputSuccess(`Created ${created.length || records.length} record(s) in "${table}".`);
         }
       } catch (err) {

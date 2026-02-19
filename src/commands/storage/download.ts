@@ -30,8 +30,8 @@ export function registerStorageDownloadCommand(storageCmd: Command): void {
         });
 
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new CLIError((err as any).error ?? `Download failed: ${res.status}`);
+          const err = await res.json().catch(() => ({})) as { error?: string };
+          throw new CLIError(err.error ?? `Download failed: ${res.status}`);
         }
 
         const buffer = Buffer.from(await res.arrayBuffer());

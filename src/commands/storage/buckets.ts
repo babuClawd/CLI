@@ -14,8 +14,8 @@ export function registerStorageBucketsCommand(storageCmd: Command): void {
         requireAuth();
 
         const res = await ossFetch('/api/storage/buckets');
-        const data = await res.json();
-        const buckets = (data as any).buckets ?? (Array.isArray(data) ? data : []);
+        const data = await res.json() as { buckets?: ({ name?: string } | string)[] };
+        const buckets = data.buckets ?? [];
 
         if (json) {
           outputJson(buckets);
@@ -26,7 +26,7 @@ export function registerStorageBucketsCommand(storageCmd: Command): void {
           }
           outputTable(
             ['Bucket Name'],
-            buckets.map((b: any) => [typeof b === 'string' ? b : b.name ?? JSON.stringify(b)]),
+            buckets.map((b) => [typeof b === 'string' ? b : b.name ?? JSON.stringify(b)]),
           );
         }
       } catch (err) {

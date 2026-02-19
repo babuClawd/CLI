@@ -22,9 +22,9 @@ export function registerRecordsUpdateCommand(recordsCmd: Command): void {
           throw new CLIError('--data is required. Example: --data \'{"name":"Jane"}\'');
         }
 
-        let body: any;
+        let body: unknown;
         try {
-          body = JSON.parse(opts.data);
+          body = JSON.parse(opts.data) as unknown;
         } catch {
           throw new CLIError('Invalid JSON in --data.');
         }
@@ -41,12 +41,12 @@ export function registerRecordsUpdateCommand(recordsCmd: Command): void {
           },
         );
 
-        const data = await res.json();
+        const data = await res.json() as { data?: unknown[] };
 
         if (json) {
           outputJson(data);
         } else {
-          const updated = (data as any).data ?? (Array.isArray(data) ? data : []);
+          const updated = data.data ?? [];
           outputSuccess(`Updated ${updated.length} record(s) in "${table}".`);
         }
       } catch (err) {

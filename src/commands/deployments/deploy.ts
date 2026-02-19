@@ -120,14 +120,14 @@ export function registerDeploymentsDeployCommand(deploymentsCmd: Command): void 
           method: 'POST',
           body: JSON.stringify(startBody),
         });
-        const result = await startRes.json();
+        const result = await startRes.json() as { deploymentUrl?: string; url?: string };
 
         s?.stop('Deployment started');
 
         if (json) {
           outputJson(result);
         } else {
-          const url = (result as any).deploymentUrl ?? (result as any).url;
+          const url = result.deploymentUrl ?? result.url;
           if (url) clack.log.info(`URL: ${url}`);
           clack.log.info(`Deployment ID: ${deploymentId}`);
           clack.log.info('Check status with `insforge deployments status <id>`');

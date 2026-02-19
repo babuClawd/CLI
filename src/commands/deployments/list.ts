@@ -19,8 +19,8 @@ export function registerDeploymentsListCommand(deploymentsCmd: Command): void {
         if (!getProjectConfig()) throw new ProjectNotLinkedError();
 
         const res = await ossFetch(`/api/deployments?limit=${opts.limit}&offset=${opts.offset}`);
-        const data = await res.json();
-        const deployments: SiteDeployment[] = (data as any).data ?? data;
+        const data = await res.json() as { data?: SiteDeployment[] };
+        const deployments: SiteDeployment[] = data.data ?? [];
 
         if (json) {
           outputJson(data);

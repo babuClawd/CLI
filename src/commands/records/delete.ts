@@ -27,12 +27,12 @@ export function registerRecordsDeleteCommand(recordsCmd: Command): void {
           { method: 'DELETE' },
         );
 
-        const data = await res.json();
+        const data = await res.json() as { data?: unknown[] };
 
         if (json) {
           outputJson(data);
         } else {
-          const deleted = (data as any).data ?? (Array.isArray(data) ? data : []);
+          const deleted = data.data ?? [];
           outputSuccess(`Deleted ${deleted.length} record(s) from "${table}".`);
         }
       } catch (err) {

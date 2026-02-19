@@ -3,6 +3,7 @@ import { ossFetch } from '../../lib/api/oss.js';
 import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts } from '../../lib/errors.js';
 import { outputJson, outputTable } from '../../lib/output.js';
+import type { OssFunction } from '../../types.js';
 
 export function registerFunctionsCommands(functionsCmd: Command): void {
   functionsCmd
@@ -14,8 +15,8 @@ export function registerFunctionsCommands(functionsCmd: Command): void {
         requireAuth();
 
         const res = await ossFetch('/api/functions');
-        const data = await res.json();
-        const functions = (data as any).functions ?? (Array.isArray(data) ? data : []);
+        const data = await res.json() as { functions?: OssFunction[] };
+        const functions = data.functions ?? [];
 
         if (json) {
           outputJson(functions);
@@ -26,7 +27,7 @@ export function registerFunctionsCommands(functionsCmd: Command): void {
           }
           outputTable(
             ['Slug', 'Name', 'Status', 'Created At'],
-            functions.map((f: any) => [
+            functions.map((f) => [
               f.slug,
               f.name ?? '-',
               f.status ?? '-',

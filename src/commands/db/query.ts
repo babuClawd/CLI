@@ -23,18 +23,18 @@ export function registerDbCommands(dbCmd: Command): void {
           body: JSON.stringify({ sql }),
         });
 
-        const data = await res.json();
+        const data = await res.json() as { rows?: Record<string, unknown>[]; data?: Record<string, unknown>[] };
 
         if (json) {
           outputJson(data);
         } else {
           // Try to render as table if results are array of objects
-          const rows = (data as any).rows ?? (data as any).data ?? (Array.isArray(data) ? data : null);
-          if (rows && Array.isArray(rows) && rows.length > 0) {
+          const rows = data.rows ?? data.data ?? null;
+          if (rows && rows.length > 0) {
             const headers = Object.keys(rows[0]);
             outputTable(
               headers,
-              rows.map((row: any) => headers.map((h) => String(row[h] ?? ''))),
+              rows.map((row) => headers.map((h) => String(row[h] ?? ''))),
             );
             console.log(`${rows.length} row(s) returned.`);
           } else {

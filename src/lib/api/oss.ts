@@ -16,8 +16,8 @@ function requireProjectConfig(): ProjectConfig {
  */
 export async function getAnonKey(): Promise<string> {
   const res = await ossFetch('/api/auth/tokens/anon', { method: 'POST' });
-  const data = await res.json();
-  return (data as any).accessToken;
+  const data = await res.json() as { accessToken: string };
+  return data.accessToken;
 }
 
 export async function ossFetch(
@@ -35,8 +35,8 @@ export async function ossFetch(
   const res = await fetch(`${config.oss_host}${path}`, { ...options, headers });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new CLIError((err as any).error ?? `OSS request failed: ${res.status}`);
+    const err = await res.json().catch(() => ({})) as { error?: string };
+    throw new CLIError(err.error ?? `OSS request failed: ${res.status}`);
   }
 
   return res;

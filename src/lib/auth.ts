@@ -77,11 +77,11 @@ export async function exchangeCodeForTokens(params: {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error_description ?? (err as any).error ?? 'Token exchange failed');
+    const err = await res.json().catch(() => ({})) as { error_description?: string; error?: string };
+    throw new Error(err.error_description ?? err.error ?? 'Token exchange failed');
   }
 
-  return res.json() as any;
+  return await res.json() as { access_token: string; refresh_token: string; expires_in: number; scope: string };
 }
 
 /**
@@ -103,11 +103,11 @@ export async function refreshOAuthToken(params: {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error_description ?? (err as any).error ?? 'Token refresh failed');
+    const err = await res.json().catch(() => ({})) as { error_description?: string; error?: string };
+    throw new Error(err.error_description ?? err.error ?? 'Token refresh failed');
   }
 
-  return res.json() as any;
+  return await res.json() as { access_token: string; refresh_token?: string; expires_in: number };
 }
 
 /**

@@ -28,8 +28,8 @@ export function registerRecordsCommands(recordsCmd: Command): void {
         const query = params.toString();
         const path = `/api/database/records/${encodeURIComponent(table)}${query ? `?${query}` : ''}`;
         const res = await ossFetch(path);
-        const data = await res.json();
-        const records = (data as any).data ?? (Array.isArray(data) ? data : []);
+        const data = await res.json() as { data?: Record<string, unknown>[] };
+        const records = data.data ?? [];
 
         if (json) {
           outputJson(data);
@@ -41,7 +41,7 @@ export function registerRecordsCommands(recordsCmd: Command): void {
           const headers = Object.keys(records[0]);
           outputTable(
             headers,
-            records.map((r: any) => headers.map((h) => {
+            records.map((r) => headers.map((h) => {
               const val = r[h];
               if (val === null || val === undefined) return '';
               if (typeof val === 'object') return JSON.stringify(val);

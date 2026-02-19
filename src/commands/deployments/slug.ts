@@ -19,14 +19,13 @@ export function registerDeploymentsSlugCommand(deploymentsCmd: Command): void {
           method: 'PUT',
           body: JSON.stringify({ slug }),
         });
-        const result = await res.json();
+        const result = await res.json() as { domain?: string; slug?: string };
 
         if (json) {
           outputJson(result);
         } else {
-          const domain = (result as any).domain;
-          outputSuccess(`Slug updated to "${(result as any).slug}"`);
-          if (domain) console.log(`  Domain: ${domain}`);
+          outputSuccess(`Slug updated to "${result.slug}"`);
+          if (result.domain) console.log(`  Domain: ${result.domain}`);
         }
       } catch (err) {
         handleError(err, json);

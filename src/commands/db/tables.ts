@@ -14,8 +14,8 @@ export function registerDbTablesCommand(dbCmd: Command): void {
         requireAuth();
 
         const res = await ossFetch('/api/database/tables');
-        const data = await res.json();
-        const tables = (data as any).tables ?? (Array.isArray(data) ? data : []);
+        const data = await res.json() as { tables?: ({ table_name?: string; name?: string } | string)[] };
+        const tables = data.tables ?? [];
 
         if (json) {
           outputJson(tables);
@@ -26,7 +26,7 @@ export function registerDbTablesCommand(dbCmd: Command): void {
           }
           outputTable(
             ['Table Name'],
-            tables.map((t: any) => [typeof t === 'string' ? t : t.table_name ?? t.name ?? JSON.stringify(t)]),
+            tables.map((t) => [typeof t === 'string' ? t : t.table_name ?? t.name ?? JSON.stringify(t)]),
           );
         }
       } catch (err) {
