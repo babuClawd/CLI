@@ -18,6 +18,12 @@ import { registerStorageBucketsCommand } from './commands/storage/buckets.js';
 import { registerStorageUploadCommand } from './commands/storage/upload.js';
 import { registerStorageDownloadCommand } from './commands/storage/download.js';
 import { registerCreateCommand } from './commands/create.js';
+import { registerDeploymentsDeployCommand } from './commands/deployments/deploy.js';
+import { registerDeploymentsListCommand } from './commands/deployments/list.js';
+import { registerDeploymentsStatusCommand } from './commands/deployments/status.js';
+import { registerDeploymentsCancelCommand } from './commands/deployments/cancel.js';
+import { registerDeploymentsMetadataCommand } from './commands/deployments/metadata.js';
+import { registerDeploymentsSlugCommand } from './commands/deployments/slug.js';
 
 const program = new Command();
 
@@ -71,5 +77,14 @@ const storageCmd = program.command('storage').description('Manage storage');
 registerStorageBucketsCommand(storageCmd);
 registerStorageUploadCommand(storageCmd);
 registerStorageDownloadCommand(storageCmd);
+
+// Deployments commands
+const deploymentsCmd = program.command('deployments').description('Deploy and manage frontend sites');
+registerDeploymentsDeployCommand(deploymentsCmd);
+registerDeploymentsListCommand(deploymentsCmd);
+registerDeploymentsStatusCommand(deploymentsCmd);
+registerDeploymentsCancelCommand(deploymentsCmd);
+registerDeploymentsMetadataCommand(deploymentsCmd);
+registerDeploymentsSlugCommand(deploymentsCmd);
 
 program.parse();

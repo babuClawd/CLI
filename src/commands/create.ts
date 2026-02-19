@@ -155,6 +155,9 @@ export function registerCreateCommand(program: Command): void {
           await downloadTemplate(template as Framework, projectConfig, projectName, json, apiUrl);
         }
 
+        // Install InsForge agent skills
+        await installSkills(json);
+
         if (json) {
           outputJson({
             success: true,
@@ -224,5 +227,18 @@ async function downloadTemplate(
       clack.log.warn(`Failed to download template: ${(err as Error).message}`);
       clack.log.info('You can manually set up the template later.');
     }
+  }
+}
+
+async function installSkills(json: boolean): Promise<void> {
+  try {
+    if (!json) clack.log.info('Installing InsForge agent skills...');
+    await execAsync('npx skills add insforge/agent-skills', {
+      cwd: process.cwd(),
+      timeout: 60_000,
+    });
+    if (!json) clack.log.success('InsForge agent skills installed.');
+  } catch {
+    if (!json) clack.log.warn('Failed to install agent skills. You can run manually: npx skills add insforge/agent-skills');
   }
 }

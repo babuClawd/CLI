@@ -12,7 +12,14 @@
     "dev": "tsup --watch",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["insforge", "cli", "backend", "database", "storage", "functions"],
+  "keywords": [
+    "insforge",
+    "cli",
+    "backend",
+    "database",
+    "storage",
+    "functions"
+  ],
   "license": "Apache-2.0",
   "engines": {
     "node": ">=18.0.0"
@@ -23,11 +30,13 @@
   ],
   "dependencies": {
     "@clack/prompts": "^0.9.1",
+    "archiver": "^7.0.1",
     "cli-table3": "^0.6.5",
     "commander": "^13.1.0",
     "open": "^10.1.0"
   },
   "devDependencies": {
+    "@types/archiver": "^7.0.0",
     "@types/node": "^22.13.4",
     "tsup": "^8.4.0",
     "typescript": "^5.7.3"

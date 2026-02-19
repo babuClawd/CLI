@@ -120,3 +120,35 @@ export interface OssFunction {
 export interface OssBucket {
   name: string;
 }
+
+// Deployment types (OSS - Vercel deployment)
+
+export interface CreateDeploymentResponse {
+  id: string;
+  uploadUrl: string;
+  uploadFields: Record<string, string>;
+}
+
+export interface SiteDeployment {
+  id: string;
+  status: string;
+  provider: string;
+  providerDeploymentId: string | null;
+  deploymentUrl: string | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeploymentMetadata {
+  currentDeploymentId: string | null;
+  domain: string | null;
+  slug: string | null;
+  deploymentUrl: string | null;
+}
+
+export interface StartDeploymentRequest {
+  projectSettings?: Record<string, unknown>;
+  envVars?: Record<string, string>;
+  meta?: Record<string, string>;
+}
