@@ -102,7 +102,7 @@ Create a new InsForge project interactively.
 
 ```bash
 insforge create
-insforge create --name "my-app" --org-id <org-id> --region us-east-1
+insforge create --name "my-app" --org-id <org-id> --region us-east
 ```
 
 #### `insforge link`
