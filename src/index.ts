@@ -38,6 +38,7 @@ import { registerDeploymentsListCommand } from './commands/deployments/list.js';
 import { registerDeploymentsStatusCommand } from './commands/deployments/status.js';
 import { registerDeploymentsCancelCommand } from './commands/deployments/cancel.js';
 
+import { registerDocsCommand } from './commands/docs.js';
 import { registerSecretsListCommand } from './commands/secrets/list.js';
 import { registerSecretsGetCommand } from './commands/secrets/get.js';
 import { registerSecretsAddCommand } from './commands/secrets/add.js';
@@ -88,6 +89,7 @@ registerWhoamiCommand(program);
 registerCreateCommand(program);
 registerContextCommand(program);
 registerListCommand(program);
+registerDocsCommand(program);
 registerProjectLinkCommand(program);
 
 // Orgs commands (hidden — use `insforge list` instead)
