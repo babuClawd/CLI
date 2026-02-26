@@ -16,7 +16,7 @@ export function registerRecordsCommands(recordsCmd: Command): void {
     .action(async (table: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const params = new URLSearchParams();
         if (opts.select) params.set('select', opts.select);

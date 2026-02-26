@@ -13,7 +13,7 @@ export function registerDeploymentsCancelCommand(deploymentsCmd: Command): void 
     .action(async (id: string, _opts, cmd) => {
       const { json, yes } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
         if (!getProjectConfig()) throw new ProjectNotLinkedError();
 
         if (!yes && !json) {

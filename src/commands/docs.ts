@@ -24,7 +24,7 @@ Examples:
     .action(async (feature: string | undefined, language: string | undefined, _opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         // No args → list all docs
         if (!feature) {

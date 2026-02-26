@@ -16,7 +16,7 @@ export function registerFunctionsDeployCommand(functionsCmd: Command): void {
     .action(async (slug: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         // Resolve source file
         const filePath = opts.file ?? join(process.cwd(), 'insforge', 'functions', slug, 'index.ts');

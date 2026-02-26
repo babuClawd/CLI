@@ -1,14 +1,15 @@
 import { getCredentials, getGlobalConfig, getPlatformApiUrl, saveCredentials } from './config.js';
 import { AuthError } from './errors.js';
-import { refreshOAuthToken, DEFAULT_CLIENT_ID } from './auth.js';
+import { refreshOAuthToken, DEFAULT_CLIENT_ID, performOAuthLogin } from './auth.js';
+import * as clack from '@clack/prompts';
 import type { StoredCredentials } from '../types.js';
 
-export function requireAuth(): StoredCredentials {
+export async function requireAuth(apiUrl?: string): Promise<StoredCredentials> {
   const creds = getCredentials();
-  if (!creds || !creds.access_token) {
-    throw new AuthError();
-  }
-  return creds;
+  if (creds && creds.access_token) return creds;
+
+  clack.log.info('You need to log in to continue.');
+  return await performOAuthLogin(apiUrl);
 }
 
 export async function refreshAccessToken(apiUrl?: string): Promise<string> {

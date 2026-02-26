@@ -15,7 +15,7 @@ export function registerDeploymentsListCommand(deploymentsCmd: Command): void {
     .action(async (opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
         if (!getProjectConfig()) throw new ProjectNotLinkedError();
 
         const res = await ossFetch(`/api/deployments?limit=${opts.limit}&offset=${opts.offset}`);

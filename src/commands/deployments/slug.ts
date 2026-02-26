@@ -13,7 +13,7 @@ export function registerDeploymentsSlugCommand(deploymentsCmd: Command): void {
     .action(async (slug: string | undefined, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
         if (!getProjectConfig()) throw new ProjectNotLinkedError();
 
         const slugValue = opts.remove ? null : (slug ?? null);

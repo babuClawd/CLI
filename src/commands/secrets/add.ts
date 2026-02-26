@@ -13,7 +13,7 @@ export function registerSecretsAddCommand(secretsCmd: Command): void {
     .action(async (key: string, value: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const body: Record<string, unknown> = { key, value };
         if (opts.reserved) body.isReserved = true;

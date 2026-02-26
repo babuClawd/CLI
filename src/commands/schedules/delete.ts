@@ -12,7 +12,7 @@ export function registerSchedulesDeleteCommand(schedulesCmd: Command): void {
     .action(async (id: string, _opts, cmd) => {
       const { json, yes } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         if (!yes && !json) {
           const confirm = await clack.confirm({

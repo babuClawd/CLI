@@ -68,7 +68,7 @@ export function registerDeploymentsDeployCommand(deploymentsCmd: Command): void 
     .action(async (directory: string | undefined, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
         const config = getProjectConfig();
         if (!config) throw new ProjectNotLinkedError();
 
