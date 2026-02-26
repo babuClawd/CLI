@@ -59,6 +59,95 @@ async function createZipBuffer(sourceDir: string): Promise<Buffer> {
   });
 }
 
+export interface DeployProjectOptions {
+  sourceDir: string;
+  startBody?: StartDeploymentRequest;
+  spinner?: ReturnType<typeof clack.spinner> | null;
+}
+
+export interface DeployProjectResult {
+  deploymentId: string;
+  deployment: SiteDeployment | null;
+  isReady: boolean;
+  liveUrl: string | null;
+}
+
+/**
+ * Core deploy logic: zip → upload → start → poll.
+ * Reusable from both the `deploy` command and `create` command.
+ */
+export async function deployProject(opts: DeployProjectOptions): Promise<DeployProjectResult> {
+  const { sourceDir, startBody = {}, spinner: s } = opts;
+
+  // Step 1: Create deployment to get presigned upload URL
+  s?.start('Creating deployment...');
+  const createRes = await ossFetch('/api/deployments', { method: 'POST' });
+  const { id: deploymentId, uploadUrl, uploadFields } =
+    (await createRes.json()) as CreateDeploymentResponse;
+
+  // Step 2: Create zip
+  s?.message('Compressing source files...');
+  const zipBuffer = await createZipBuffer(sourceDir);
+
+  // Step 3: Upload zip to presigned URL
+  s?.message('Uploading...');
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(uploadFields)) {
+    formData.append(key, value);
+  }
+  formData.append(
+    'file',
+    new Blob([zipBuffer], { type: 'application/zip' }),
+    'deployment.zip',
+  );
+
+  const uploadRes = await fetch(uploadUrl, { method: 'POST', body: formData });
+  if (!uploadRes.ok) {
+    const uploadErr = await uploadRes.text();
+    throw new CLIError(`Failed to upload: ${uploadErr}`);
+  }
+
+  // Step 4: Start the deployment
+  s?.message('Starting deployment...');
+  const startRes = await ossFetch(`/api/deployments/${deploymentId}/start`, {
+    method: 'POST',
+    body: JSON.stringify(startBody),
+  });
+  await startRes.json();
+
+  // Step 5: Poll for deployment status
+  s?.message('Building and deploying...');
+  const startTime = Date.now();
+  let deployment: SiteDeployment | null = null;
+
+  while (Date.now() - startTime < POLL_TIMEOUT_MS) {
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+    try {
+      const statusRes = await ossFetch(`/api/deployments/${deploymentId}`);
+      deployment = (await statusRes.json()) as SiteDeployment;
+
+      if (deployment.status === 'ready' || deployment.status === 'READY') {
+        break;
+      }
+      if (deployment.status === 'error' || deployment.status === 'ERROR' || deployment.status === 'canceled') {
+        s?.stop('Deployment failed');
+        throw new CLIError(deployment.error ?? `Deployment failed with status: ${deployment.status}`);
+      }
+
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      s?.message(`Building and deploying... (${elapsed}s, status: ${deployment.status})`);
+    } catch (err) {
+      if (err instanceof CLIError) throw err;
+      // Ignore transient fetch errors during polling
+    }
+  }
+
+  const isReady = deployment?.status === 'ready' || deployment?.status === 'READY';
+  const liveUrl = isReady ? (deployment?.deploymentUrl ?? deployment?.url ?? null) : null;
+
+  return { deploymentId, deployment, isReady, liveUrl };
+}
+
 export function registerDeploymentsDeployCommand(deploymentsCmd: Command): void {
   deploymentsCmd
     .command('deploy [directory]')
@@ -81,41 +170,11 @@ export function registerDeploymentsDeployCommand(deploymentsCmd: Command): void 
 
         const s = !json ? clack.spinner() : null;
 
-        // Step 1: Create deployment to get presigned upload URL
-        s?.start('Creating deployment...');
-        const createRes = await ossFetch('/api/deployments', { method: 'POST' });
-        const { id: deploymentId, uploadUrl, uploadFields } =
-          (await createRes.json()) as CreateDeploymentResponse;
-
-        // Step 2: Create zip
-        s?.message('Compressing source files...');
-        const zipBuffer = await createZipBuffer(sourceDir);
-
-        // Step 3: Upload zip to presigned URL
-        s?.message('Uploading...');
-        const formData = new FormData();
-        for (const [key, value] of Object.entries(uploadFields)) {
-          formData.append(key, value);
-        }
-        formData.append(
-          'file',
-          new Blob([zipBuffer], { type: 'application/zip' }),
-          'deployment.zip',
-        );
-
-        const uploadRes = await fetch(uploadUrl, { method: 'POST', body: formData });
-        if (!uploadRes.ok) {
-          const uploadErr = await uploadRes.text();
-          throw new CLIError(`Failed to upload: ${uploadErr}`);
-        }
-
-        // Step 4: Start the deployment
-        s?.message('Starting deployment...');
+        // Parse env/meta from CLI flags
         const startBody: StartDeploymentRequest = {};
         if (opts.env) {
           try {
             const parsed = JSON.parse(opts.env) as Record<string, string>;
-            // Convert {"KEY":"value"} object to [{key,value}] array format
             if (Array.isArray(parsed)) {
               startBody.envVars = parsed;
             } else {
@@ -127,60 +186,26 @@ export function registerDeploymentsDeployCommand(deploymentsCmd: Command): void 
           try { startBody.meta = JSON.parse(opts.meta); } catch { throw new CLIError('Invalid --meta JSON.'); }
         }
 
-        const startRes = await ossFetch(`/api/deployments/${deploymentId}/start`, {
-          method: 'POST',
-          body: JSON.stringify(startBody),
-        });
-        await startRes.json();
+        const result = await deployProject({ sourceDir, startBody, spinner: s });
 
-        // Step 5: Poll for deployment status
-        s?.message('Building and deploying...');
-        const startTime = Date.now();
-        let deployment: SiteDeployment | null = null;
-
-        while (Date.now() - startTime < POLL_TIMEOUT_MS) {
-          await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-          try {
-            const statusRes = await ossFetch(`/api/deployments/${deploymentId}`);
-            deployment = (await statusRes.json()) as SiteDeployment;
-
-            if (deployment.status === 'ready' || deployment.status === 'READY') {
-              break;
-            }
-            if (deployment.status === 'error' || deployment.status === 'ERROR' || deployment.status === 'canceled') {
-              s?.stop('Deployment failed');
-              throw new CLIError(deployment.error ?? `Deployment failed with status: ${deployment.status}`);
-            }
-
-            const elapsed = Math.round((Date.now() - startTime) / 1000);
-            s?.message(`Building and deploying... (${elapsed}s, status: ${deployment.status})`);
-          } catch (err) {
-            if (err instanceof CLIError) throw err;
-            // Ignore transient fetch errors during polling
-          }
-        }
-
-        const isReady = deployment?.status === 'ready' || deployment?.status === 'READY';
-
-        if (isReady) {
+        if (result.isReady) {
           s?.stop('Deployment complete');
           if (json) {
-            outputJson(deployment);
+            outputJson(result.deployment);
           } else {
-            const liveUrl = deployment?.deploymentUrl ?? deployment?.url;
-            if (liveUrl) {
-              clack.log.success(`Live at: ${liveUrl}`);
+            if (result.liveUrl) {
+              clack.log.success(`Live at: ${result.liveUrl}`);
             }
-            clack.log.info(`Deployment ID: ${deploymentId}`);
+            clack.log.info(`Deployment ID: ${result.deploymentId}`);
           }
         } else {
           s?.stop('Deployment is still building');
           if (json) {
-            outputJson({ id: deploymentId, status: deployment?.status ?? 'building', timedOut: true });
+            outputJson({ id: result.deploymentId, status: result.deployment?.status ?? 'building', timedOut: true });
           } else {
-            clack.log.info(`Deployment ID: ${deploymentId}`);
+            clack.log.info(`Deployment ID: ${result.deploymentId}`);
             clack.log.warn('Deployment did not finish within 2 minutes.');
-            clack.log.info(`Check status with: insforge deployments status ${deploymentId}`);
+            clack.log.info(`Check status with: insforge deployments status ${result.deploymentId}`);
           }
         }
       } catch (err) {

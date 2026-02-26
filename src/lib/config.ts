@@ -8,7 +8,7 @@ const CREDENTIALS_FILE = join(GLOBAL_DIR, 'credentials.json');
 const CONFIG_FILE = join(GLOBAL_DIR, 'config.json');
 
 const DEFAULT_PLATFORM_URL = 'https://api.insforge.dev';
-const DEFAULT_FRONTEND_URL = 'https://app.insforge.dev';
+const DEFAULT_FRONTEND_URL = 'https://insforge.dev';
 
 function ensureGlobalDir(): void {
   if (!existsSync(GLOBAL_DIR)) {

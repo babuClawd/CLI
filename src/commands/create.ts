@@ -12,11 +12,12 @@ import {
   getProjectApiKey,
 } from '../lib/api/platform.js';
 import { getAnonKey } from '../lib/api/oss.js';
-import { getGlobalConfig, saveGlobalConfig, saveProjectConfig } from '../lib/config.js';
+import { getGlobalConfig, saveGlobalConfig, saveProjectConfig, getFrontendUrl } from '../lib/config.js';
 import { requireAuth } from '../lib/credentials.js';
 import { handleError, getRootOpts, CLIError } from '../lib/errors.js';
 import { outputJson } from '../lib/output.js';
 import { installSkills } from '../lib/skills.js';
+import { deployProject } from './deployments/deploy.js';
 import type { ProjectConfig } from '../types.js';
 
 const execAsync = promisify(exec);
@@ -150,21 +151,79 @@ export function registerCreateCommand(program: Command): void {
         s?.stop(`Project "${project.name}" created and linked`);
 
         // 6. Download template if selected
-        if (template !== 'empty') {
+        const hasTemplate = template !== 'empty';
+        if (hasTemplate) {
           await downloadTemplate(template as Framework, projectConfig, projectName, json, apiUrl);
         }
 
         // Install InsForge agent skills
         await installSkills(json);
 
+        // 7. Install npm dependencies (template projects only)
+        if (hasTemplate) {
+          const installSpinner = !json ? clack.spinner() : null;
+          installSpinner?.start('Installing dependencies...');
+          try {
+            await execAsync('npm install', { cwd: process.cwd(), maxBuffer: 10 * 1024 * 1024 });
+            installSpinner?.stop('Dependencies installed');
+          } catch (err) {
+            installSpinner?.stop('Failed to install dependencies');
+            if (!json) {
+              clack.log.warn(`npm install failed: ${(err as Error).message}`);
+              clack.log.info('Run `npm install` manually to install dependencies.');
+            }
+          }
+        }
+
+        // 8. Offer to deploy (template projects, interactive mode only)
+        let liveUrl: string | null = null;
+        if (hasTemplate && !json) {
+          const shouldDeploy = await clack.confirm({
+            message: 'Would you like to deploy now?',
+          });
+
+          if (!clack.isCancel(shouldDeploy) && shouldDeploy) {
+            try {
+              const deploySpinner = clack.spinner();
+              const result = await deployProject({
+                sourceDir: process.cwd(),
+                spinner: deploySpinner,
+              });
+
+              if (result.isReady) {
+                deploySpinner.stop('Deployment complete');
+                liveUrl = result.liveUrl;
+              } else {
+                deploySpinner.stop('Deployment is still building');
+                clack.log.info(`Deployment ID: ${result.deploymentId}`);
+                clack.log.warn('Deployment did not finish within 2 minutes.');
+                clack.log.info(`Check status with: insforge deployments status ${result.deploymentId}`);
+              }
+            } catch (err) {
+              clack.log.warn(`Deploy failed: ${(err as Error).message}`);
+            }
+          }
+        }
+
+        // 9. Show links
+        const dashboardUrl = `${getFrontendUrl()}/dashboard/project/${project.id}`;
+
         if (json) {
           outputJson({
             success: true,
             project: { id: project.id, name: project.name, appkey: project.appkey, region: project.region },
             template,
+            urls: {
+              dashboard: dashboardUrl,
+              ...(liveUrl ? { liveSite: liveUrl } : {}),
+            },
           });
         } else {
-          clack.outro('Done! Run `npm install` to get started.');
+          clack.log.step(`Dashboard: ${dashboardUrl}`);
+          if (liveUrl) {
+            clack.log.success(`Live site: ${liveUrl}`);
+          }
+          clack.outro('Done!');
         }
       } catch (err) {
         handleError(err, json);
