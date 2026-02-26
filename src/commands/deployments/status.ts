@@ -14,7 +14,7 @@ export function registerDeploymentsStatusCommand(deploymentsCmd: Command): void 
     .action(async (id: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
         if (!getProjectConfig()) throw new ProjectNotLinkedError();
 
         // Optionally sync status from Vercel first

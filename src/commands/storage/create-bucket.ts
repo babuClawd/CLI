@@ -13,7 +13,7 @@ export function registerStorageCreateBucketCommand(storageCmd: Command): void {
     .action(async (name: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const isPublic = !opts.private;
 

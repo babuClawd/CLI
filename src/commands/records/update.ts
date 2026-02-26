@@ -13,7 +13,7 @@ export function registerRecordsUpdateCommand(recordsCmd: Command): void {
     .action(async (table: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         if (!opts.filter) {
           throw new CLIError('--filter is required to prevent accidental updates to all rows.');

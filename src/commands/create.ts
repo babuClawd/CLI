@@ -62,7 +62,7 @@ export function registerCreateCommand(program: Command): void {
     .action(async (opts, cmd) => {
       const { json, apiUrl } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth(apiUrl);
 
         if (!json) {
           clack.intro('Create a new InsForge project');

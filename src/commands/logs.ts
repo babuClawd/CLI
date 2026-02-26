@@ -15,7 +15,7 @@ export function registerLogsCommand(program: Command): void {
     .action(async (source: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const resolved = SOURCE_LOOKUP.get(source.toLowerCase());
         if (!resolved) {

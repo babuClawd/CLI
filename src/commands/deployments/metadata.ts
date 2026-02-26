@@ -13,7 +13,7 @@ export function registerDeploymentsMetadataCommand(deploymentsCmd: Command): voi
     .action(async (_opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
         if (!getProjectConfig()) throw new ProjectNotLinkedError();
 
         const res = await ossFetch('/api/deployments/metadata');

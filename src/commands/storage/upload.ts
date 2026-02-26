@@ -15,7 +15,7 @@ export function registerStorageUploadCommand(storageCmd: Command): void {
     .action(async (file: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const config = getProjectConfig();
         if (!config) throw new ProjectNotLinkedError();

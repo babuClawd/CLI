@@ -12,7 +12,7 @@ export function registerRecordsDeleteCommand(recordsCmd: Command): void {
     .action(async (table: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         if (!opts.filter) {
           throw new CLIError('--filter is required to prevent accidental deletion of all rows.');

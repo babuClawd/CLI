@@ -12,7 +12,7 @@ export function registerDbCommands(dbCmd: Command): void {
     .action(async (sql: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const endpoint = opts.unrestricted
           ? '/api/database/advance/rawsql/unrestricted'

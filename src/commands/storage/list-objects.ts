@@ -29,7 +29,7 @@ export function registerStorageListObjectsCommand(storageCmd: Command): void {
     .action(async (bucket: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const params = new URLSearchParams();
         params.set('limit', opts.limit);

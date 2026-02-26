@@ -23,7 +23,7 @@ export function registerFunctionsCodeCommand(functionsCmd: Command): void {
     .action(async (slug: string, _opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const res = await ossFetch(`/api/functions/${encodeURIComponent(slug)}`);
         const fn = await res.json() as FunctionDetails;

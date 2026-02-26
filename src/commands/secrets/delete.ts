@@ -12,7 +12,7 @@ export function registerSecretsDeleteCommand(secretsCmd: Command): void {
     .action(async (key: string, _opts, cmd) => {
       const { json, yes } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         if (!yes && !json) {
           const confirm = await clack.confirm({

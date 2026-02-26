@@ -12,7 +12,7 @@ export function registerSecretsListCommand(secretsCmd: Command): void {
     .action(async (opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const res = await ossFetch('/api/secrets');
         const data = await res.json() as { secrets: Record<string, unknown>[] };

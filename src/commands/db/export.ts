@@ -20,7 +20,7 @@ export function registerDbExportCommand(dbCmd: Command): void {
     .action(async (opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const body: Record<string, unknown> = {
           format: opts.format,

@@ -11,7 +11,7 @@ export function registerWhoamiCommand(program: Command): void {
     .action(async (_opts, cmd) => {
       const { json, apiUrl } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth(apiUrl);
         const profile = await getProfile(apiUrl);
 
         if (json) {

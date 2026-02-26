@@ -12,7 +12,7 @@ export function registerDbRpcCommand(dbCmd: Command): void {
     .action(async (functionName: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const body = opts.data ? JSON.stringify(JSON.parse(opts.data) as unknown) : undefined;
 

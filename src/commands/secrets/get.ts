@@ -11,7 +11,7 @@ export function registerSecretsGetCommand(secretsCmd: Command): void {
     .action(async (key: string, _opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const res = await ossFetch(`/api/secrets/${encodeURIComponent(key)}`);
         const data = await res.json() as { key: string; value: string };

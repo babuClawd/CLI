@@ -14,7 +14,7 @@ export function registerProjectsCommands(projectsCmd: Command): void {
     .action(async (opts, cmd) => {
       const { json, apiUrl } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth(apiUrl);
 
         let orgId = opts.orgId ?? getGlobalConfig().default_org_id;
 

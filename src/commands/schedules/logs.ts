@@ -13,7 +13,7 @@ export function registerSchedulesLogsCommand(schedulesCmd: Command): void {
     .action(async (id: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const limit = parseInt(opts.limit, 10) || 50;
         const offset = parseInt(opts.offset, 10) || 0;

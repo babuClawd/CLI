@@ -1,16 +1,8 @@
 import type { Command } from 'commander';
 import * as clack from '@clack/prompts';
-import { saveCredentials, getGlobalConfig, getPlatformApiUrl } from '../lib/config.js';
-import { login as platformLogin, getProfile } from '../lib/api/platform.js';
-import {
-  generatePKCE,
-  generateState,
-  buildAuthorizeUrl,
-  exchangeCodeForTokens,
-  startCallbackServer,
-  DEFAULT_CLIENT_ID,
-  OAUTH_SCOPES,
-} from '../lib/auth.js';
+import { saveCredentials, getPlatformApiUrl } from '../lib/config.js';
+import { login as platformLogin } from '../lib/api/platform.js';
+import { performOAuthLogin } from '../lib/auth.js';
 import { handleError, getRootOpts } from '../lib/errors.js';
 import type { StoredCredentials } from '../types.js';
 
@@ -27,7 +19,7 @@ export function registerLoginCommand(program: Command): void {
         if (opts.email) {
           await loginWithEmail(json, apiUrl);
         } else {
-          await loginWithOAuth(json, apiUrl, opts.clientId);
+          await loginWithOAuth(json, apiUrl);
         }
       } catch (err) {
         if (err instanceof Error && err.message.includes('cancelled')) {
@@ -96,129 +88,16 @@ async function loginWithEmail(json: boolean, apiUrl?: string): Promise<void> {
   }
 }
 
-async function loginWithOAuth(json: boolean, apiUrl?: string, clientIdOverride?: string): Promise<void> {
-  const platformUrl = getPlatformApiUrl(apiUrl);
-  const config = getGlobalConfig();
-  const clientId = clientIdOverride ?? config.oauth_client_id ?? DEFAULT_CLIENT_ID;
-
-  // 1. Generate PKCE and state
-  const pkce = generatePKCE();
-  const state = generateState();
-
-  // 2. Start local callback server
-  const { port, result, close } = await startCallbackServer();
-  const redirectUri = `http://127.0.0.1:${port}/callback`;
-
-  // 3. Build authorization URL
-  const authUrl = buildAuthorizeUrl({
-    platformUrl,
-    clientId,
-    redirectUri,
-    codeChallenge: pkce.code_challenge,
-    state,
-    scopes: OAUTH_SCOPES,
-  });
-
+async function loginWithOAuth(json: boolean, apiUrl?: string): Promise<void> {
   if (!json) {
     clack.intro('InsForge CLI');
-    clack.log.info('Opening browser for authentication...');
-    clack.log.info(`If browser doesn't open, visit:\n${authUrl}`);
   }
 
-  // 4. Open browser
-  try {
-    const open = (await import('open')).default;
-    await open(authUrl);
-  } catch {
-    if (!json) {
-      clack.log.warn(`Could not open browser. Please visit the URL above.`);
-    }
-  }
+  const creds = await performOAuthLogin(apiUrl);
 
-  // 5. Wait for callback
   if (!json) {
-    const s = clack.spinner();
-    s.start('Waiting for authentication...');
-
-    try {
-      const callbackResult = await result;
-      close();
-
-      // Verify state
-      if (callbackResult.state !== state) {
-        s.stop('Authentication failed');
-        throw new Error('State mismatch. Possible CSRF attack.');
-      }
-
-      // 6. Exchange code for tokens
-      s.message('Exchanging authorization code...');
-      const tokens = await exchangeCodeForTokens({
-        platformUrl,
-        code: callbackResult.code,
-        redirectUri,
-        clientId,
-        codeVerifier: pkce.code_verifier,
-      });
-
-      // 7. Fetch user profile with the new token
-      const creds: StoredCredentials = {
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        user: { id: '', name: '', email: '', avatar_url: null, email_verified: true },
-      };
-      saveCredentials(creds);
-
-      // Try to get user profile
-      try {
-        const profile = await getProfile(apiUrl);
-        creds.user = profile;
-        saveCredentials(creds);
-        s.stop(`Authenticated as ${profile.email}`);
-      } catch {
-        s.stop('Authenticated successfully');
-      }
-
-      clack.outro('Done');
-    } catch (err) {
-      close();
-      s.stop('Authentication failed');
-      throw err;
-    }
+    clack.outro('Done');
   } else {
-    // JSON mode
-    try {
-      const callbackResult = await result;
-      close();
-
-      if (callbackResult.state !== state) {
-        throw new Error('State mismatch.');
-      }
-
-      const tokens = await exchangeCodeForTokens({
-        platformUrl,
-        code: callbackResult.code,
-        redirectUri,
-        clientId,
-        codeVerifier: pkce.code_verifier,
-      });
-
-      const creds: StoredCredentials = {
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        user: { id: '', name: '', email: '', avatar_url: null, email_verified: true },
-      };
-      saveCredentials(creds);
-
-      try {
-        const profile = await getProfile(apiUrl);
-        creds.user = profile;
-        saveCredentials(creds);
-      } catch {}
-
-      console.log(JSON.stringify({ success: true, user: creds.user }));
-    } catch (err) {
-      close();
-      throw err;
-    }
+    console.log(JSON.stringify({ success: true, user: creds.user }));
   }
 }

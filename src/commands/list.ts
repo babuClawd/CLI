@@ -11,7 +11,7 @@ export function registerListCommand(program: Command): void {
     .action(async (_opts, cmd) => {
       const { json, apiUrl } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth(apiUrl);
         const orgs = await listOrganizations(apiUrl);
 
         if (orgs.length === 0) {

@@ -12,7 +12,7 @@ export function registerFunctionsCommands(functionsCmd: Command): void {
     .action(async (_opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const res = await ossFetch('/api/functions');
         const data = await res.json() as { functions?: OssFunction[] };

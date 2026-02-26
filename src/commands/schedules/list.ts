@@ -11,7 +11,7 @@ export function registerSchedulesListCommand(schedulesCmd: Command): void {
     .action(async (_opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const res = await ossFetch('/api/schedules');
         const data = await res.json();

@@ -12,7 +12,7 @@ export function registerRecordsCreateCommand(recordsCmd: Command): void {
     .action(async (table: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         if (!opts.data) {
           throw new CLIError('--data is required. Example: --data \'{"name":"John"}\'');

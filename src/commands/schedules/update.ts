@@ -18,7 +18,7 @@ export function registerSchedulesUpdateCommand(schedulesCmd: Command): void {
     .action(async (id: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const body: Record<string, unknown> = {};
         if (opts.name !== undefined) body.name = opts.name;

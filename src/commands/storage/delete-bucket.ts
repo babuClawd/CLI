@@ -12,7 +12,7 @@ export function registerStorageDeleteBucketCommand(storageCmd: Command): void {
     .action(async (name: string, _opts, cmd) => {
       const { json, yes } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         if (!yes && !json) {
           const confirm = await clack.confirm({

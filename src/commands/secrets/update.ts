@@ -15,7 +15,7 @@ export function registerSecretsUpdateCommand(secretsCmd: Command): void {
     .action(async (key: string, opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const body: Record<string, unknown> = {};
         if (opts.value !== undefined) body.value = opts.value;

@@ -1,6 +1,10 @@
 import { createServer } from 'node:http';
 import { randomBytes, createHash } from 'node:crypto';
 import { URL } from 'node:url';
+import * as clack from '@clack/prompts';
+import { getGlobalConfig, getPlatformApiUrl, saveCredentials } from './config.js';
+import { getProfile } from './api/platform.js';
+import type { StoredCredentials } from '../types.js';
 
 // Default OAuth client for InsForge CLI (pre-registered on the platform)
 export const DEFAULT_CLIENT_ID = 'clf_NK8cMUs41gm8ZcfdtSguVw';
@@ -174,4 +178,92 @@ export function startCallbackServer(): Promise<{
       server.close();
     }, 5 * 60 * 1000).unref();
   });
+}
+
+/**
+ * Perform the full OAuth PKCE login flow:
+ * generate PKCE + state, start callback server, open browser, exchange code, save credentials.
+ * Returns the stored credentials on success.
+ */
+export async function performOAuthLogin(apiUrl?: string): Promise<StoredCredentials> {
+  const platformUrl = getPlatformApiUrl(apiUrl);
+  const config = getGlobalConfig();
+  const clientId = config.oauth_client_id ?? DEFAULT_CLIENT_ID;
+
+  // 1. Generate PKCE and state
+  const pkce = generatePKCE();
+  const state = generateState();
+
+  // 2. Start local callback server
+  const { port, result, close } = await startCallbackServer();
+  const redirectUri = `http://127.0.0.1:${port}/callback`;
+
+  // 3. Build authorization URL
+  const authUrl = buildAuthorizeUrl({
+    platformUrl,
+    clientId,
+    redirectUri,
+    codeChallenge: pkce.code_challenge,
+    state,
+    scopes: OAUTH_SCOPES,
+  });
+
+  clack.log.info('Opening browser for authentication...');
+  clack.log.info(`If browser doesn't open, visit:\n${authUrl}`);
+
+  // 4. Open browser
+  try {
+    const open = (await import('open')).default;
+    await open(authUrl);
+  } catch {
+    clack.log.warn('Could not open browser. Please visit the URL above.');
+  }
+
+  // 5. Wait for callback
+  const s = clack.spinner();
+  s.start('Waiting for authentication...');
+
+  try {
+    const callbackResult = await result;
+    close();
+
+    // Verify state
+    if (callbackResult.state !== state) {
+      s.stop('Authentication failed');
+      throw new Error('State mismatch. Possible CSRF attack.');
+    }
+
+    // 6. Exchange code for tokens
+    s.message('Exchanging authorization code...');
+    const tokens = await exchangeCodeForTokens({
+      platformUrl,
+      code: callbackResult.code,
+      redirectUri,
+      clientId,
+      codeVerifier: pkce.code_verifier,
+    });
+
+    // 7. Save credentials and fetch profile
+    const creds: StoredCredentials = {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      user: { id: '', name: '', email: '', avatar_url: null, email_verified: true },
+    };
+    saveCredentials(creds);
+
+    try {
+      const profile = await getProfile(apiUrl);
+      creds.user = profile;
+      saveCredentials(creds);
+      s.stop(`Authenticated as ${profile.email}`);
+    } catch {
+      s.stop('Authenticated successfully');
+    }
+
+    return creds;
+  } catch (err) {
+    close();
+    s.stop('Authentication failed');
+    throw err;
+  }
 }

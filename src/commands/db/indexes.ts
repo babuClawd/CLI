@@ -26,7 +26,7 @@ export function registerDbIndexesCommand(dbCmd: Command): void {
     .action(async (_opts, cmd) => {
       const { json } = getRootOpts(cmd);
       try {
-        requireAuth();
+        await requireAuth();
 
         const res = await ossFetch('/api/database/indexes');
         const raw = await res.json() as unknown;
