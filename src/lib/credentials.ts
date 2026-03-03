@@ -9,7 +9,22 @@ export async function requireAuth(apiUrl?: string): Promise<StoredCredentials> {
   if (creds && creds.access_token) return creds;
 
   clack.log.info('You need to log in to continue.');
-  return await performOAuthLogin(apiUrl);
+
+  for (;;) {
+    try {
+      return await performOAuthLogin(apiUrl);
+    } catch (err) {
+      if (!process.stdout.isTTY) throw err;
+
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      clack.log.error(`Login failed: ${msg}`);
+
+      const retry = await clack.confirm({ message: 'Would you like to try again?' });
+      if (clack.isCancel(retry) || !retry) {
+        throw new AuthError('Authentication required. Run `insforge login` to authenticate.');
+      }
+    }
+  }
 }
 
 export async function refreshAccessToken(apiUrl?: string): Promise<string> {

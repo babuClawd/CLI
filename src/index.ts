@@ -1,7 +1,9 @@
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
+import * as clack from '@clack/prompts';
+import { getCredentials, getProjectConfig } from './lib/config.js';
 import { registerLoginCommand } from './commands/login.js';
 import { registerLogoutCommand } from './commands/logout.js';
 import { registerWhoamiCommand } from './commands/whoami.js';
@@ -66,20 +68,6 @@ const INSFORGE_LOGO = `
 ██║██║ ╚████║███████║██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
 ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 `;
-
-function showLogoOnFirstRun(): void {
-  if (process.argv.includes('--json')) return;
-
-  const localDir = join(process.cwd(), '.insforge');
-  if (existsSync(localDir)) return;
-
-  console.log(INSFORGE_LOGO);
-  console.log('  Welcome to InsForge CLI! Run `insforge login` to get started.\n');
-
-  mkdirSync(localDir, { recursive: true });
-}
-
-showLogoOnFirstRun();
 
 const program = new Command();
 
@@ -177,4 +165,76 @@ registerSchedulesUpdateCommand(schedulesCmd);
 registerSchedulesDeleteCommand(schedulesCmd);
 registerSchedulesLogsCommand(schedulesCmd);
 
-program.parse();
+if (process.argv.length <= 2 && process.stdout.isTTY) {
+  await showInteractiveMenu();
+} else {
+  program.parse();
+}
+
+async function showInteractiveMenu(): Promise<void> {
+  let isLoggedIn = false;
+  let isLinked = false;
+
+  try {
+    isLoggedIn = !!getCredentials()?.access_token;
+  } catch { /* corrupted credentials file */ }
+
+  try {
+    isLinked = !!getProjectConfig()?.project_id;
+  } catch { /* no project config */ }
+
+  console.log(INSFORGE_LOGO);
+  clack.intro(`InsForge CLI v${pkg.version}`);
+
+  type Action = 'login' | 'create' | 'link' | 'deploy' | 'docs' | 'help';
+  const options: { value: Action; label: string; hint?: string }[] = [];
+
+  if (!isLoggedIn) {
+    options.push({ value: 'login', label: 'Log in to InsForge' });
+  }
+
+  options.push(
+    { value: 'create', label: 'Create a new project', hint: isLoggedIn ? undefined : 'requires login' },
+    { value: 'link', label: 'Link an existing project', hint: isLoggedIn ? undefined : 'requires login' },
+  );
+
+  if (isLinked) {
+    options.push({ value: 'deploy', label: 'Deploy your project' });
+  }
+
+  options.push(
+    { value: 'docs', label: 'View documentation' },
+    { value: 'help', label: 'Show all commands' },
+  );
+
+  const action = await clack.select({
+    message: 'What would you like to do?',
+    options,
+  });
+
+  if (clack.isCancel(action)) {
+    clack.cancel('Bye!');
+    process.exit(0);
+  }
+
+  switch (action) {
+    case 'login':
+      await program.parseAsync(['node', 'insforge', 'login']);
+      break;
+    case 'create':
+      await program.parseAsync(['node', 'insforge', 'create']);
+      break;
+    case 'link':
+      await program.parseAsync(['node', 'insforge', 'link']);
+      break;
+    case 'deploy':
+      await program.parseAsync(['node', 'insforge', 'deployments', 'deploy']);
+      break;
+    case 'docs':
+      await program.parseAsync(['node', 'insforge', 'docs']);
+      break;
+    case 'help':
+      program.help();
+      break;
+  }
+}
