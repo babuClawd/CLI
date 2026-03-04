@@ -56,6 +56,7 @@ import { registerSchedulesDeleteCommand } from './commands/schedules/delete.js';
 import { registerSchedulesLogsCommand } from './commands/schedules/logs.js';
 
 import { registerLogsCommand } from './commands/logs.js';
+import { registerMetadataCommand } from './commands/metadata.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8')) as { version: string };
@@ -155,6 +156,9 @@ registerSecretsDeleteCommand(secretsCmd);
 
 // Logs command
 registerLogsCommand(program);
+
+// Metadata command
+registerMetadataCommand(program);
 
 // Schedules commands
 const schedulesCmd = program.command('schedules').description('Manage scheduled tasks (cron jobs)');
