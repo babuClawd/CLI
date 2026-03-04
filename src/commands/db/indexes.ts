@@ -3,21 +3,7 @@ import { ossFetch } from '../../lib/api/oss.js';
 import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts } from '../../lib/errors.js';
 import { outputJson, outputTable } from '../../lib/output.js';
-
-function str(val: unknown): string {
-  if (val === null || val === undefined) return '-';
-  if (Array.isArray(val)) return val.join(', ');
-  return String(val);
-}
-
-function extractArray(raw: unknown): Record<string, unknown>[] {
-  if (Array.isArray(raw)) return raw as Record<string, unknown>[];
-  if (raw && typeof raw === 'object') {
-    const arr = Object.values(raw).find(Array.isArray);
-    if (arr) return arr as Record<string, unknown>[];
-  }
-  return [];
-}
+import type { DatabaseIndexesResponse } from '../../types.js';
 
 export function registerDbIndexesCommand(dbCmd: Command): void {
   dbCmd
@@ -29,8 +15,10 @@ export function registerDbIndexesCommand(dbCmd: Command): void {
         await requireAuth();
 
         const res = await ossFetch('/api/database/indexes');
-        const raw = await res.json() as unknown;
-        const indexes = extractArray(raw);
+        const raw = await res.json();
+        const indexes: DatabaseIndexesResponse['indexes'] = Array.isArray(raw)
+          ? raw
+          : (raw as DatabaseIndexesResponse).indexes ?? [];
 
         if (json) {
           outputJson(raw);
@@ -42,9 +30,9 @@ export function registerDbIndexesCommand(dbCmd: Command): void {
           outputTable(
             ['Table', 'Index Name', 'Definition', 'Unique', 'Primary'],
             indexes.map((i) => [
-              str(i.tableName),
-              str(i.indexName),
-              str(i.indexDef),
+              i.tableName,
+              i.indexName,
+              i.indexDef,
               i.isUnique ? 'Yes' : 'No',
               i.isPrimary ? 'Yes' : 'No',
             ]),

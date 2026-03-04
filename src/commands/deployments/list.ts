@@ -4,7 +4,7 @@ import { requireAuth } from '../../lib/credentials.js';
 import { getProjectConfig } from '../../lib/config.js';
 import { handleError, getRootOpts, ProjectNotLinkedError } from '../../lib/errors.js';
 import { outputJson, outputTable } from '../../lib/output.js';
-
+import type { ListDeploymentsResponse } from '../../types.js';
 
 export function registerDeploymentsListCommand(deploymentsCmd: Command): void {
   deploymentsCmd
@@ -19,17 +19,13 @@ export function registerDeploymentsListCommand(deploymentsCmd: Command): void {
         if (!getProjectConfig()) throw new ProjectNotLinkedError();
 
         const res = await ossFetch(`/api/deployments?limit=${opts.limit}&offset=${opts.offset}`);
-        const raw = await res.json() as unknown;
-
+        const raw = await res.json();
         // API may return array directly or { data: [...] }
-        let deployments: Record<string, unknown>[];
-        if (Array.isArray(raw)) {
-          deployments = raw as Record<string, unknown>[];
-        } else if (raw && typeof raw === 'object' && 'data' in raw && Array.isArray((raw as Record<string, unknown>).data)) {
-          deployments = (raw as Record<string, unknown>).data as Record<string, unknown>[];
-        } else {
-          deployments = [];
-        }
+        const deployments: ListDeploymentsResponse['data'] = Array.isArray(raw)
+          ? raw
+          : raw && typeof raw === 'object' && 'data' in raw
+            ? (raw as ListDeploymentsResponse).data ?? []
+            : [];
 
         if (json) {
           outputJson(raw);
@@ -41,11 +37,11 @@ export function registerDeploymentsListCommand(deploymentsCmd: Command): void {
           outputTable(
             ['ID', 'Status', 'Provider', 'URL', 'Created'],
             deployments.map((d) => [
-              String(d.id ?? '-'),
-              String(d.status ?? '-'),
-              String(d.provider ?? '-'),
-              String(d.deploymentUrl ?? d.url ?? '-'),
-              d.createdAt ?? d.created_at ? new Date(String(d.createdAt ?? d.created_at)).toLocaleString() : '-',
+              d.id,
+              d.status,
+              d.provider,
+              d.url ?? '-',
+              new Date(d.createdAt).toLocaleString(),
             ]),
           );
         }

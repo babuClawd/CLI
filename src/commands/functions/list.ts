@@ -3,7 +3,7 @@ import { ossFetch } from '../../lib/api/oss.js';
 import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts } from '../../lib/errors.js';
 import { outputJson, outputTable } from '../../lib/output.js';
-import type { OssFunction } from '../../types.js';
+import type { ListFunctionsResponse } from '../../types.js';
 
 export function registerFunctionsCommands(functionsCmd: Command): void {
   functionsCmd
@@ -15,11 +15,16 @@ export function registerFunctionsCommands(functionsCmd: Command): void {
         await requireAuth();
 
         const res = await ossFetch('/api/functions');
-        const data = await res.json() as { functions?: OssFunction[] };
-        const functions = data.functions ?? [];
+        const raw = await res.json();
+        // API may return array directly or { functions: [...] }
+        const functions: ListFunctionsResponse['functions'] = Array.isArray(raw)
+          ? raw
+          : raw && typeof raw === 'object' && 'functions' in raw
+            ? (raw as ListFunctionsResponse).functions ?? []
+            : [];
 
         if (json) {
-          outputJson(functions);
+          outputJson(raw);
         } else {
           if (functions.length === 0) {
             console.log('No functions found.');
@@ -31,7 +36,7 @@ export function registerFunctionsCommands(functionsCmd: Command): void {
               f.slug,
               f.name ?? '-',
               f.status ?? '-',
-              f.created_at ? new Date(f.created_at).toLocaleString() : '-',
+              f.createdAt ? new Date(f.createdAt).toLocaleString() : '-',
             ]),
           );
         }
