@@ -3,6 +3,7 @@ import { ossFetch } from '../../lib/api/oss.js';
 import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts } from '../../lib/errors.js';
 import { outputJson, outputTable } from '../../lib/output.js';
+import type { StorageBucketSchema } from '../../types.js';
 
 export function registerStorageBucketsCommand(storageCmd: Command): void {
   storageCmd
@@ -14,19 +15,11 @@ export function registerStorageBucketsCommand(storageCmd: Command): void {
         await requireAuth();
 
         const res = await ossFetch('/api/storage/buckets');
-        const raw = await res.json() as unknown;
-
-        // API may return { buckets: string[] } or string[] directly
-        let buckets: string[];
-        if (Array.isArray(raw)) {
-          buckets = raw as string[];
-        } else if (raw && typeof raw === 'object' && 'buckets' in raw && Array.isArray((raw as Record<string, unknown>).buckets)) {
-          buckets = (raw as Record<string, unknown>).buckets as string[];
-        } else {
-          // Fallback: find first array in response
-          const arr = raw && typeof raw === 'object' ? Object.values(raw).find(Array.isArray) : null;
-          buckets = (arr as string[] | null) ?? [];
-        }
+        const raw = await res.json();
+        // API may return array directly or { buckets: [...] }
+        const buckets: StorageBucketSchema[] = Array.isArray(raw)
+          ? raw
+          : (raw as { buckets?: StorageBucketSchema[] }).buckets ?? [];
 
         if (json) {
           outputJson(raw);
@@ -36,8 +29,8 @@ export function registerStorageBucketsCommand(storageCmd: Command): void {
             return;
           }
           outputTable(
-            ['Bucket Name'],
-            buckets.map((b) => [typeof b === 'string' ? b : JSON.stringify(b)]),
+            ['Bucket Name', 'Public'],
+            buckets.map((b) => [b.name, b.public ? 'Yes' : 'No']),
           );
         }
       } catch (err) {

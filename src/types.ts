@@ -104,23 +104,7 @@ export interface ApiError {
 
 // OSS API types
 
-export interface OssTable {
-  table_name: string;
-}
-
-export interface OssFunction {
-  id: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface OssBucket {
-  name: string;
-}
+export type { ListFunctionsResponse, StorageBucketSchema, ListDeploymentsResponse } from '@insforge/shared-schemas';
 
 // Deployment types (OSS - Vercel deployment)
 
