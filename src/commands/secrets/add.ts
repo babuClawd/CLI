@@ -4,6 +4,7 @@ import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts } from '../../lib/errors.js';
 import { outputJson, outputSuccess } from '../../lib/output.js';
 import type { CreateSecretResponse } from '../../types.js';
+import { reportCliUsage } from '../../lib/skills.js';
 
 export function registerSecretsAddCommand(secretsCmd: Command): void {
   secretsCmd
@@ -31,6 +32,7 @@ export function registerSecretsAddCommand(secretsCmd: Command): void {
         } else {
           outputSuccess(data.message ?? `Secret ${key} created.`);
         }
+        await reportCliUsage('cli.secrets.add', true);
       } catch (err) {
         handleError(err, json);
       }

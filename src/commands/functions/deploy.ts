@@ -5,6 +5,7 @@ import { ossFetch } from '../../lib/api/oss.js';
 import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts, CLIError } from '../../lib/errors.js';
 import { outputJson, outputSuccess } from '../../lib/output.js';
+import { reportCliUsage } from '../../lib/skills.js';
 
 export function registerFunctionsDeployCommand(functionsCmd: Command): void {
   functionsCmd
@@ -57,6 +58,7 @@ export function registerFunctionsDeployCommand(functionsCmd: Command): void {
         } else {
           outputSuccess(`Function "${slug}" ${exists ? 'updated' : 'created'} successfully.`);
         }
+        await reportCliUsage('cli.functions.deploy', true);
       } catch (err) {
         handleError(err, json);
       }

@@ -4,6 +4,7 @@ import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts } from '../../lib/errors.js';
 import { outputJson, outputTable } from '../../lib/output.js';
 import type { ListFunctionsResponse } from '../../types.js';
+import { reportCliUsage } from '../../lib/skills.js';
 
 export function registerFunctionsCommands(functionsCmd: Command): void {
   functionsCmd
@@ -40,6 +41,7 @@ export function registerFunctionsCommands(functionsCmd: Command): void {
             ]),
           );
         }
+        await reportCliUsage('cli.functions.list', true);
       } catch (err) {
         handleError(err, json);
       }

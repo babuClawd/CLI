@@ -4,6 +4,7 @@ import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts } from '../../lib/errors.js';
 import { outputJson, outputTable } from '../../lib/output.js';
 import type { ListSecretsResponse } from '../../types.js';
+import { reportCliUsage } from '../../lib/skills.js';
 
 export function registerSecretsListCommand(secretsCmd: Command): void {
   secretsCmd
@@ -47,6 +48,7 @@ export function registerSecretsListCommand(secretsCmd: Command): void {
             }),
           );
         }
+        await reportCliUsage('cli.secrets.list', true);
       } catch (err) {
         handleError(err, json);
       }

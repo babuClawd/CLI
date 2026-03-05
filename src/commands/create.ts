@@ -16,7 +16,7 @@ import { getGlobalConfig, saveGlobalConfig, saveProjectConfig, getFrontendUrl } 
 import { requireAuth } from '../lib/credentials.js';
 import { handleError, getRootOpts, CLIError } from '../lib/errors.js';
 import { outputJson } from '../lib/output.js';
-import { installSkills } from '../lib/skills.js';
+import { installSkills, reportCliUsage } from '../lib/skills.js';
 import { deployProject } from './deployments/deploy.js';
 import type { ProjectConfig } from '../types.js';
 
@@ -158,6 +158,7 @@ export function registerCreateCommand(program: Command): void {
 
         // Install InsForge agent skills
         await installSkills(json);
+        await reportCliUsage('cli.create', true, 12);
 
         // 7. Install npm dependencies (template projects only)
         if (hasTemplate) {

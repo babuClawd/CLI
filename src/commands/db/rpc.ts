@@ -3,6 +3,7 @@ import { ossFetch } from '../../lib/api/oss.js';
 import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts } from '../../lib/errors.js';
 import { outputJson } from '../../lib/output.js';
+import { reportCliUsage } from '../../lib/skills.js';
 
 export function registerDbRpcCommand(dbCmd: Command): void {
   dbCmd
@@ -28,6 +29,7 @@ export function registerDbRpcCommand(dbCmd: Command): void {
         } else {
           console.log(JSON.stringify(result, null, 2));
         }
+        await reportCliUsage('cli.db.rpc', true);
       } catch (err) {
         handleError(err, json);
       }

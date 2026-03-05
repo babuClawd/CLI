@@ -4,6 +4,7 @@ import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts } from '../../lib/errors.js';
 import { outputJson, outputTable } from '../../lib/output.js';
 import type { DatabaseTriggersResponse } from '../../types.js';
+import { reportCliUsage } from '../../lib/skills.js';
 
 export function registerDbTriggersCommand(dbCmd: Command): void {
   dbCmd
@@ -40,6 +41,7 @@ export function registerDbTriggersCommand(dbCmd: Command): void {
             ]),
           );
         }
+        await reportCliUsage('cli.db.triggers', true);
       } catch (err) {
         handleError(err, json);
       }

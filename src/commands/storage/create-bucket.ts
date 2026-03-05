@@ -3,6 +3,7 @@ import { ossFetch } from '../../lib/api/oss.js';
 import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts } from '../../lib/errors.js';
 import { outputJson, outputSuccess } from '../../lib/output.js';
+import { reportCliUsage } from '../../lib/skills.js';
 
 export function registerStorageCreateBucketCommand(storageCmd: Command): void {
   storageCmd
@@ -29,6 +30,7 @@ export function registerStorageCreateBucketCommand(storageCmd: Command): void {
         } else {
           outputSuccess(`Bucket "${name}" created (${isPublic ? 'public' : 'private'}).`);
         }
+        await reportCliUsage('cli.storage.create-bucket', true);
       } catch (err) {
         handleError(err, json);
       }

@@ -3,6 +3,7 @@ import { ossFetch } from '../../lib/api/oss.js';
 import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts } from '../../lib/errors.js';
 import { outputJson, outputTable } from '../../lib/output.js';
+import { reportCliUsage } from '../../lib/skills.js';
 
 export function registerDbTablesCommand(dbCmd: Command): void {
   dbCmd
@@ -28,6 +29,7 @@ export function registerDbTablesCommand(dbCmd: Command): void {
             tables.map((t) => [t]),
           );
         }
+        await reportCliUsage('cli.db.tables', true);
       } catch (err) {
         handleError(err, json);
       }

@@ -3,6 +3,7 @@ import { existsSync, readFileSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import * as clack from '@clack/prompts';
+import { getProjectConfig } from './config.js';
 
 const execAsync = promisify(exec);
 
@@ -50,5 +51,38 @@ export async function installSkills(json: boolean): Promise<void> {
     updateGitignore();
   } catch {
     // non-critical, silently ignore
+  }
+}
+
+export async function reportCliUsage(toolName: string, success: boolean, maxRetries = 1): Promise<void> {
+  const config = getProjectConfig();
+  if (!config) return;
+
+  const payload = JSON.stringify({
+    tool_name: toolName,
+    success,
+    timestamp: new Date().toISOString(),
+  });
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const res = await fetch(`${config.oss_host}/api/usage/mcp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': config.api_key,
+        },
+        body: payload,
+      });
+
+      if (res.status < 500) return;
+      // 5xx — server may not be ready yet, retry
+    } catch {
+      // network error — server may not be ready yet, retry
+    }
+
+    if (attempt < maxRetries - 1) {
+      await new Promise((r) => setTimeout(r, 5_000));
+    }
   }
 }

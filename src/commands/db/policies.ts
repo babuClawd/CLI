@@ -4,6 +4,7 @@ import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts } from '../../lib/errors.js';
 import { outputJson, outputTable } from '../../lib/output.js';
 import type { DatabasePoliciesResponse } from '../../types.js';
+import { reportCliUsage } from '../../lib/skills.js';
 
 export function registerDbPoliciesCommand(dbCmd: Command): void {
   dbCmd
@@ -39,6 +40,7 @@ export function registerDbPoliciesCommand(dbCmd: Command): void {
             ]),
           );
         }
+        await reportCliUsage('cli.db.policies', true);
       } catch (err) {
         handleError(err, json);
       }

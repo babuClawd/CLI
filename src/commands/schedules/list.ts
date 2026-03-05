@@ -3,6 +3,8 @@ import { ossFetch } from '../../lib/api/oss.js';
 import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts } from '../../lib/errors.js';
 import { outputJson, outputTable } from '../../lib/output.js';
+import type { ListSchedulesResponse } from '../../types.js';
+import { reportCliUsage } from '../../lib/skills.js';
 
 export function registerSchedulesListCommand(schedulesCmd: Command): void {
   schedulesCmd
@@ -15,7 +17,7 @@ export function registerSchedulesListCommand(schedulesCmd: Command): void {
 
         const res = await ossFetch('/api/schedules');
         const data = await res.json();
-        const schedules: Record<string, unknown>[] = Array.isArray(data) ? data : ((data as Record<string, unknown>).schedules as Record<string, unknown>[]) ?? [];
+        const schedules: ListSchedulesResponse = data as ListSchedulesResponse;
 
         if (json) {
           outputJson(schedules);
@@ -37,6 +39,7 @@ export function registerSchedulesListCommand(schedulesCmd: Command): void {
             ]),
           );
         }
+        await reportCliUsage('cli.schedules.list', true);
       } catch (err) {
         handleError(err, json);
       }
