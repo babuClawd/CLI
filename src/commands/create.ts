@@ -262,7 +262,8 @@ async function downloadTemplate(
     }
 
     const frame = framework === 'nextjs' ? 'nextjs' : 'react';
-    const command = `npx create-insforge-app ${targetDir} --frame ${frame} --base-url ${projectConfig.oss_host} --anon-key ${anonKey} --skip-install`;
+    const esc = (s: string) => `'${s.replace(/'/g, "'\\''")}'`;
+    const command = `npx create-insforge-app ${esc(targetDir)} --frame ${frame} --base-url ${esc(projectConfig.oss_host)} --anon-key ${esc(anonKey)} --skip-install`;
 
     s?.message(`Running create-insforge-app (${frame})...`);
 
