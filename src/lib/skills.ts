@@ -37,8 +37,9 @@ function updateGitignore(): void {
 
 async function isCliInstalledGlobally(): Promise<boolean> {
   try {
-    await execAsync('insforge --version');
-    return true;
+    const { stdout } = await execAsync('npm ls -g @insforge/cli --json', { timeout: 10_000 });
+    const parsed = JSON.parse(stdout);
+    return !!parsed?.dependencies?.['@insforge/cli'];
   } catch {
     return false;
   }
