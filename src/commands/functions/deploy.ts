@@ -57,6 +57,8 @@ export function registerFunctionsDeployCommand(functionsCmd: Command): void {
 
         const result = await res.json() as FunctionResponse;
 
+        const deployFailed = result.deployment?.status === 'failed';
+
         if (json) {
           outputJson(result);
         } else {
@@ -77,7 +79,8 @@ export function registerFunctionsDeployCommand(functionsCmd: Command): void {
             }
           }
         }
-        await reportCliUsage('cli.functions.deploy', true);
+        await reportCliUsage('cli.functions.deploy', !deployFailed);
+        if (deployFailed) process.exit(1);
       } catch (err) {
         await reportCliUsage('cli.functions.deploy', false);
         handleError(err, json);

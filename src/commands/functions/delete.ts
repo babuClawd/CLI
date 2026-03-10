@@ -5,7 +5,7 @@ import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts } from '../../lib/errors.js';
 import { outputJson, outputSuccess } from '../../lib/output.js';
 import { reportCliUsage } from '../../lib/skills.js';
-import { FunctionResponse } from '../../types.js';
+import type { FunctionResponse } from '../../types.js';
 
 export function registerFunctionsDeleteCommand(functionsCmd: Command): void {
   functionsCmd
@@ -26,8 +26,7 @@ export function registerFunctionsDeleteCommand(functionsCmd: Command): void {
           }
         }
 
-        let res: Response;
-        res = await ossFetch(`/api/functions/${encodeURIComponent(slug)}`, {
+        const res = await ossFetch(`/api/functions/${encodeURIComponent(slug)}`, {
           method: 'DELETE',
         });
         const result = await res.json() as FunctionResponse;
