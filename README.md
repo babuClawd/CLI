@@ -300,12 +300,13 @@ insforge functions invoke my-function --method GET
 insforge functions invoke my-function --data '{"key": "value"}' --json
 ```
 
-#### `insforge functions delete`
+#### `insforge functions delete <slug>`
 
 Delete an edge function.
 
 ```bash
-insforge functions delete <slug>
+insforge functions delete my-function
+insforge functions delete my-function -y  # skip confirmation
 ```
 
 ---
