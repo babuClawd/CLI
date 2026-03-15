@@ -165,7 +165,7 @@ Browse InsForge SDK documentation.
 insforge docs [feature] [language]
 ```
 
-**Features:** `db`, `storage`, `functions`, `auth`, `ai`, `realtime`
+**Features:** `db`, `storage`, `functions`, `auth`, `ai`, `realtime`, `instructions`
 **Languages:** `typescript`, `swift`, `kotlin`, `rest-api`
 
 **Examples:**
@@ -174,9 +174,10 @@ insforge docs [feature] [language]
 insforge docs
 
 # Specific feature/language docs
-insforge docs db typescript
-insforge docs auth swift
-insforge docs storage rest-api
+insforge docs instructions           # Show backend setup instructions
+insforge docs db typescript          # Show TypeScript database SDK docs
+insforge docs auth swift             # Show Swift auth SDK docs
+insforge docs storage rest-api       # Show REST API storage docs
 ```
 
 ---
