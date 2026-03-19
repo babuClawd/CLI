@@ -361,19 +361,23 @@ async function downloadGitHubTemplate(
     // Run database migrations if db_int.sql exists
     const migrationPath = path.join(cwd, 'migrations', 'db_int.sql');
     const migrationExists = await fs.stat(migrationPath).catch(() => null);
-    if (migrationExists) {
-      const dbSpinner = !json ? clack.spinner() : null;
-      dbSpinner?.start('Running database migrations...');
-      try {
-        const sql = await fs.readFile(migrationPath, 'utf-8');
-        await ossFetch('/api/database/advance/rawsql/unrestricted', {
-          method: 'POST',
-          body: JSON.stringify({ query: sql }),
-        });
-        dbSpinner?.stop('Database migrations applied');
-      } catch (err) {
-        dbSpinner?.stop('Database migration failed');
-        if (!json) {
+    if (migrationExists && !json) {
+      const runMigration = await clack.confirm({
+        message: 'This template includes a database migration. Apply it now?',
+      });
+
+      if (!clack.isCancel(runMigration) && runMigration) {
+        const dbSpinner = clack.spinner();
+        dbSpinner.start('Running database migrations...');
+        try {
+          const sql = await fs.readFile(migrationPath, 'utf-8');
+          await ossFetch('/api/database/advance/rawsql/unrestricted', {
+            method: 'POST',
+            body: JSON.stringify({ query: sql }),
+          });
+          dbSpinner.stop('Database migrations applied');
+        } catch (err) {
+          dbSpinner.stop('Database migration failed');
           clack.log.warn(`Migration failed: ${(err as Error).message}`);
           clack.log.info('You can run the migration manually: insforge db query --unrestricted "$(cat migrations/db_int.sql)"');
         }
