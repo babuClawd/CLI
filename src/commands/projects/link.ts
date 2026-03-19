@@ -29,17 +29,17 @@ export function registerProjectLinkCommand(program: Command): void {
       const { json, apiUrl } = getRootOpts(cmd);
       try {
         if (opts.apiBaseUrl || opts.apiKey) {
-          if (!opts.apiBaseUrl || !opts.apiKey) {
-            throw new CLIError('Both --api-base-url and --api-key must be provided together for direct linking.');
-          }
-
           try {
-            new URL(opts.apiBaseUrl);
-          } catch {
-            throw new CLIError('Invalid --api-base-url. Please provide a valid URL.');
-          }
+            if (!opts.apiBaseUrl || !opts.apiKey) {
+              throw new CLIError('Both --api-base-url and --api-key must be provided together for direct linking.');
+            }
 
-          try {
+            try {
+              new URL(opts.apiBaseUrl);
+            } catch {
+              throw new CLIError('Invalid --api-base-url. Please provide a valid URL.');
+            }
+
             // Direct OSS/Self-hosted linking bypasses OAuth
             const projectConfig: ProjectConfig = {
               project_id: 'oss-project',
@@ -66,11 +66,11 @@ export function registerProjectLinkCommand(program: Command): void {
             return;
           } catch (err) {
             await reportCliUsage('cli.link_direct', false);
-            throw err;
+            handleError(err, json);
           }
         }
 
-        await requireAuth(apiUrl);
+        await requireAuth(apiUrl, false);
 
         let orgId = opts.orgId;
         let projectId = opts.projectId;

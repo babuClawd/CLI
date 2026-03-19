@@ -4,9 +4,9 @@ import { refreshOAuthToken, DEFAULT_CLIENT_ID, performOAuthLogin } from './auth.
 import * as clack from '@clack/prompts';
 import type { StoredCredentials } from '../types.js';
 
-export async function requireAuth(apiUrl?: string): Promise<StoredCredentials> {
+export async function requireAuth(apiUrl?: string, allowOssBypass = true): Promise<StoredCredentials> {
   const projConfig = getProjectConfig();
-  if (projConfig?.project_id === 'oss-project') {
+  if (allowOssBypass && projConfig?.project_id === 'oss-project') {
     return {
       access_token: 'oss-token',
       refresh_token: 'oss-refresh',
