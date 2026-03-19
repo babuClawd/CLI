@@ -23,10 +23,54 @@ export function registerProjectLinkCommand(program: Command): void {
     .description('Link current directory to an InsForge project')
     .option('--project-id <id>', 'Project ID to link')
     .option('--org-id <id>', 'Organization ID')
+    .option('--api-base-url <url>', 'API Base URL for direct linking (OSS/Self-hosted)')
+    .option('--api-key <key>', 'API Key for direct linking (OSS/Self-hosted)')
     .action(async (opts, cmd) => {
       const { json, apiUrl } = getRootOpts(cmd);
       try {
-        await requireAuth(apiUrl);
+        if (opts.apiBaseUrl || opts.apiKey) {
+          try {
+            if (!opts.apiBaseUrl || !opts.apiKey) {
+              throw new CLIError('Both --api-base-url and --api-key must be provided together for direct linking.');
+            }
+
+            try {
+              new URL(opts.apiBaseUrl);
+            } catch {
+              throw new CLIError('Invalid --api-base-url. Please provide a valid URL.');
+            }
+
+            // Direct OSS/Self-hosted linking bypasses OAuth
+            const projectConfig: ProjectConfig = {
+              project_id: 'oss-project',
+              project_name: 'oss-project',
+              org_id: 'oss-org',
+              appkey: 'oss',
+              region: 'local',
+              api_key: opts.apiKey,
+              oss_host: opts.apiBaseUrl.replace(/\/$/, ''), // remove trailing slash if any
+            };
+
+            saveProjectConfig(projectConfig);
+
+            if (json) {
+              outputJson({ success: true, project: { id: projectConfig.project_id, name: projectConfig.project_name, region: projectConfig.region } });
+            } else {
+              outputSuccess(`Linked to direct project at ${projectConfig.oss_host}`);
+            }
+
+            // Install CLI globally and agent skills
+            await installCliGlobally(json);
+            await installSkills(json);
+            await reportCliUsage('cli.link_direct', true, 6);
+            return;
+          } catch (err) {
+            await reportCliUsage('cli.link_direct', false);
+            handleError(err, json);
+          }
+        }
+
+        await requireAuth(apiUrl, false);
 
         let orgId = opts.orgId;
         let projectId = opts.projectId;

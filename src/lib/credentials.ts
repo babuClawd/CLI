@@ -1,10 +1,25 @@
-import { getCredentials, getGlobalConfig, getPlatformApiUrl, saveCredentials } from './config.js';
+import { getCredentials, getGlobalConfig, getPlatformApiUrl, saveCredentials, getProjectConfig } from './config.js';
 import { AuthError } from './errors.js';
 import { refreshOAuthToken, DEFAULT_CLIENT_ID, performOAuthLogin } from './auth.js';
 import * as clack from '@clack/prompts';
 import type { StoredCredentials } from '../types.js';
 
-export async function requireAuth(apiUrl?: string): Promise<StoredCredentials> {
+export async function requireAuth(apiUrl?: string, allowOssBypass = true): Promise<StoredCredentials> {
+  const projConfig = getProjectConfig();
+  if (allowOssBypass && projConfig?.project_id === 'oss-project') {
+    return {
+      access_token: 'oss-token',
+      refresh_token: 'oss-refresh',
+      user: {
+        id: 'oss-user',
+        name: 'OSS User',
+        email: 'oss@insforge.local',
+        avatar_url: null,
+        email_verified: true,
+      },
+    };
+  }
+
   const creds = getCredentials();
   if (creds && creds.access_token) return creds;
 
