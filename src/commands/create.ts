@@ -349,6 +349,7 @@ async function downloadGitHubTemplate(
           const key = prefix.slice(0, -1); // remove trailing '='
           if (/INSFORGE.*(URL|BASE_URL)$/.test(key)) return `${prefix}${projectConfig.oss_host}`;
           if (/INSFORGE.*ANON_KEY$/.test(key)) return `${prefix}${anonKey}`;
+          if (key === 'NEXT_PUBLIC_APP_URL') return `${prefix}https://${projectConfig.appkey}.insforge.site`;
           return `${prefix}${_value}`;
         },
       );
