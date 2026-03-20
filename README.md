@@ -594,6 +594,38 @@ npm link        # makes `insforge` available globally
 npm run dev     # watch mode for development
 ```
 
+### Testing
+
+#### Unit tests
+
+```bash
+npm run test:unit
+```
+
+#### Real project integration tests
+
+Run locally:
+
+```bash
+INTEGRATION_TEST_ENABLED=true \
+INTEGRATION_LOG_SOURCE=insforge.logs \
+npm run test:integration:real
+```
+
+Prerequisites:
+- Logged in (`insforge login`) so `~/.insforge/credentials.json` exists
+- Linked project in this repo (`insforge link`) so `.insforge/project.json` exists
+
+Optional environment variables:
+- `INSFORGE_API_URL`: Platform API URL override (defaults to `https://api.insforge.dev`)
+- `INTEGRATION_LOG_SOURCE`: Log source for `logs` test (default `insforge.logs`)
+
+Current real-project checks:
+- `whoami --json`
+- `metadata --json`
+- `logs <source> --json`
+- `docs instructions --json`
+
 ## Releasing
 
 Bump the version, push the tag, and create a GitHub Release — the CI will publish to npm automatically.
