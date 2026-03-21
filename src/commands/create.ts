@@ -64,7 +64,7 @@ export function registerCreateCommand(program: Command): void {
     .action(async (opts, cmd) => {
       const { json, apiUrl } = getRootOpts(cmd);
       try {
-        await requireAuth(apiUrl);
+        await requireAuth(apiUrl, false);
 
         if (!json) {
           clack.intro('Create a new InsForge project');
@@ -282,8 +282,8 @@ async function downloadTemplate(
     }
 
     const frame = framework === 'nextjs' ? 'nextjs' : 'react';
-    const esc = (s: string) => `'${s.replace(/'/g, "'\\''")}'`;
-    const command = `npx create-insforge-app ${esc(targetDir)} --frame ${frame} --base-url ${esc(projectConfig.oss_host)} --anon-key ${esc(anonKey)} --skip-install`;
+    const esc = (s: string) => process.platform === 'win32' ? `"${s.replace(/"/g, '\\"')}"` : `'${s.replace(/'/g, "'\\''")}'`;
+    const command = `npx --yes create-insforge-app@latest ${esc(targetDir)} --frame ${frame} --base-url ${esc(projectConfig.oss_host)} --anon-key ${esc(anonKey)} --skip-install`;
 
     s?.message(`Running create-insforge-app (${frame})...`);
 
