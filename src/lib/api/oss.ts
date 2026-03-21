@@ -14,7 +14,12 @@ function requireProjectConfig(): ProjectConfig {
  * Unified OSS API fetch. Uses API key as Bearer token for all requests,
  * which grants superadmin access (SQL execution, bucket management, etc.).
  */
-export async function runRawSql(sql: string, unrestricted = false): Promise<Record<string, unknown>[]> {
+export interface RawSqlResult {
+  rows: Record<string, unknown>[];
+  raw: Record<string, unknown>;
+}
+
+export async function runRawSql(sql: string, unrestricted = false): Promise<RawSqlResult> {
   const endpoint = unrestricted
     ? '/api/database/advance/rawsql/unrestricted'
     : '/api/database/advance/rawsql';
@@ -22,8 +27,9 @@ export async function runRawSql(sql: string, unrestricted = false): Promise<Reco
     method: 'POST',
     body: JSON.stringify({ query: sql }),
   });
-  const data = await res.json() as { rows?: Record<string, unknown>[]; data?: Record<string, unknown>[] };
-  return data.rows ?? data.data ?? [];
+  const raw = await res.json() as Record<string, unknown>;
+  const rows = (raw.rows ?? raw.data ?? []) as Record<string, unknown>[];
+  return { rows, raw };
 }
 
 export async function getAnonKey(): Promise<string> {
