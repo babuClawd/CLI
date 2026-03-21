@@ -364,25 +364,33 @@ async function downloadGitHubTemplate(
     // Run database migrations if db_int.sql exists
     const migrationPath = path.join(cwd, 'migrations', 'db_int.sql');
     const migrationExists = await fs.stat(migrationPath).catch(() => null);
-    if (migrationExists && !json) {
-      const runMigration = await clack.confirm({
-        message: 'This template includes a database migration. Apply it now?',
-      });
+    if (migrationExists) {
+      let shouldRun = json; // auto-run in JSON/non-interactive mode
+      if (!json) {
+        const runMigration = await clack.confirm({
+          message: 'This template includes a database migration. Apply it now?',
+        });
+        shouldRun = !clack.isCancel(runMigration) && runMigration;
+      }
 
-      if (!clack.isCancel(runMigration) && runMigration) {
-        const dbSpinner = clack.spinner();
-        dbSpinner.start('Running database migrations...');
+      if (shouldRun) {
+        const dbSpinner = !json ? clack.spinner() : null;
+        dbSpinner?.start('Running database migrations...');
         try {
           const sql = await fs.readFile(migrationPath, 'utf-8');
           await ossFetch('/api/database/advance/rawsql/unrestricted', {
             method: 'POST',
             body: JSON.stringify({ query: sql }),
           });
-          dbSpinner.stop('Database migrations applied');
+          dbSpinner?.stop('Database migrations applied');
         } catch (err) {
-          dbSpinner.stop('Database migration failed');
-          clack.log.warn(`Migration failed: ${(err as Error).message}`);
-          clack.log.info('You can run the migration manually: insforge db query --unrestricted "$(cat migrations/db_int.sql)"');
+          dbSpinner?.stop('Database migration failed');
+          if (!json) {
+            clack.log.warn(`Migration failed: ${(err as Error).message}`);
+            clack.log.info('You can run the migration manually: insforge db query --unrestricted "$(cat migrations/db_int.sql)"');
+          } else {
+            throw err;
+          }
         }
       }
     }
