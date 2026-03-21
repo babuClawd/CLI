@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { ossFetch } from '../../lib/api/oss.js';
+import { runRawSql } from '../../lib/api/oss.js';
 import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts } from '../../lib/errors.js';
 import { outputJson, outputTable } from '../../lib/output.js';
@@ -15,23 +15,12 @@ export function registerDbCommands(dbCmd: Command): void {
       try {
         await requireAuth();
 
-        const endpoint = opts.unrestricted
-          ? '/api/database/advance/rawsql/unrestricted'
-          : '/api/database/advance/rawsql';
-
-        const res = await ossFetch(endpoint, {
-          method: 'POST',
-          body: JSON.stringify({ query: sql }),
-        });
-
-        const data = await res.json() as { rows?: Record<string, unknown>[]; data?: Record<string, unknown>[] };
+        const rows = await runRawSql(sql, !!opts.unrestricted);
 
         if (json) {
-          outputJson(data);
+          outputJson({ rows });
         } else {
-          // Try to render as table if results are array of objects
-          const rows = data.rows ?? data.data ?? null;
-          if (rows && rows.length > 0) {
+          if (rows.length > 0) {
             const headers = Object.keys(rows[0]);
             outputTable(
               headers,

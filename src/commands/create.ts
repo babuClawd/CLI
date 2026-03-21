@@ -11,7 +11,7 @@ import {
   getProject,
   getProjectApiKey,
 } from '../lib/api/platform.js';
-import { getAnonKey, ossFetch } from '../lib/api/oss.js';
+import { getAnonKey, runRawSql } from '../lib/api/oss.js';
 import { getGlobalConfig, saveGlobalConfig, saveProjectConfig, getFrontendUrl } from '../lib/config.js';
 import { requireAuth } from '../lib/credentials.js';
 import { handleError, getRootOpts, CLIError } from '../lib/errors.js';
@@ -378,10 +378,7 @@ async function downloadGitHubTemplate(
         dbSpinner?.start('Running database migrations...');
         try {
           const sql = await fs.readFile(migrationPath, 'utf-8');
-          await ossFetch('/api/database/advance/rawsql/unrestricted', {
-            method: 'POST',
-            body: JSON.stringify({ query: sql }),
-          });
+          await runRawSql(sql, true);
           dbSpinner?.stop('Database migrations applied');
         } catch (err) {
           dbSpinner?.stop('Database migration failed');
