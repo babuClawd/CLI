@@ -109,7 +109,7 @@ export function registerDiagnoseMetricsCommand(diagnoseCmd: Command): void {
     .action(async (opts, cmd) => {
       const { json, apiUrl } = getRootOpts(cmd);
       try {
-        await requireAuth();
+        await requireAuth(apiUrl);
         const config = getProjectConfig();
         if (!config) throw new ProjectNotLinkedError();
         if (config.project_id === 'oss-project') {

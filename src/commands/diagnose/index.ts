@@ -21,7 +21,7 @@ export function registerDiagnoseCommands(diagnoseCmd: Command): void {
     .action(async (_opts, cmd) => {
       const { json, apiUrl } = getRootOpts(cmd);
       try {
-        await requireAuth();
+        await requireAuth(apiUrl);
         const config = getProjectConfig();
         if (!config) throw new ProjectNotLinkedError();
 
