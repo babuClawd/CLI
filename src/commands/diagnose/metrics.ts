@@ -59,6 +59,39 @@ function computeStats(data: MetricDataPoint[]): { latest: number; avg: number; m
   return { latest, avg: sum / data.length, max };
 }
 
+/**
+ * Aggregate multiple series of the same metric (e.g. multiple network interfaces)
+ * into a single series per metric name. Network metrics are summed; others take the first series.
+ */
+function aggregateByMetric(series: MetricSeries[]): MetricSeries[] {
+  const grouped = new Map<string, MetricSeries[]>();
+  for (const s of series) {
+    const existing = grouped.get(s.metric);
+    if (existing) existing.push(s);
+    else grouped.set(s.metric, [s]);
+  }
+
+  const result: MetricSeries[] = [];
+  for (const [metric, group] of grouped) {
+    if (group.length === 1 || !NETWORK_METRICS.has(metric)) {
+      result.push(group[0]);
+      continue;
+    }
+    // Sum network metrics across interfaces by matching timestamps
+    const tsMap = new Map<number, number>();
+    for (const s of group) {
+      for (const d of s.data) {
+        tsMap.set(d.timestamp, (tsMap.get(d.timestamp) ?? 0) + d.value);
+      }
+    }
+    const merged: MetricDataPoint[] = [...tsMap.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([timestamp, value]) => ({ timestamp, value }));
+    result.push({ metric, instance_id: 'aggregate', data: merged });
+  }
+  return result;
+}
+
 export async function fetchMetricsSummary(
   projectId: string,
   apiUrl?: string,
@@ -95,22 +128,24 @@ export function registerDiagnoseMetricsCommand(diagnoseCmd: Command): void {
         );
         const data = (await res.json()) as MetricsResponse;
 
+        const aggregated = aggregateByMetric(data.metrics);
+
         if (json) {
           const enriched = {
             ...data,
-            metrics: data.metrics.map((m) => {
+            metrics: aggregated.map((m) => {
               const stats = computeStats(m.data);
               return { ...m, latest: stats.latest, avg: stats.avg, max: stats.max };
             }),
           };
           outputJson(enriched);
         } else {
-          if (!data.metrics || data.metrics.length === 0) {
+          if (!aggregated.length) {
             console.log('No metrics data available.');
             return;
           }
           const headers = ['Metric', 'Latest', 'Avg', 'Max', 'Range'];
-          const rows = data.metrics.map((m) => {
+          const rows = aggregated.map((m) => {
             const stats = computeStats(m.data);
             return [
               METRIC_LABELS[m.metric] ?? m.metric,
