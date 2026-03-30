@@ -23,8 +23,6 @@ import type { ProjectConfig } from '../types.js';
 
 const execAsync = promisify(exec);
 
-type Framework = 'react' | 'nextjs';
-
 function buildOssHost(appkey: string, region: string): string {
   return `https://${appkey}.${region}.insforge.app`;
 }
@@ -276,11 +274,8 @@ export function registerCreateCommand(program: Command): void {
 
         // 6. Download template or seed env for blank projects
         const hasTemplate = template !== 'empty';
-        const githubTemplates = ['chatbot', 'crm', 'e-commerce'];
-        if (githubTemplates.includes(template!)) {
+        if (hasTemplate) {
           await downloadGitHubTemplate(template!, projectConfig, json);
-        } else if (hasTemplate) {
-          await downloadTemplate(template as Framework, projectConfig, projectName, json, apiUrl);
         } else {
           // Blank project: seed .env.local with InsForge credentials (non-fatal)
           try {
@@ -394,64 +389,6 @@ export function registerCreateCommand(program: Command): void {
         handleError(err, json);
       }
     });
-}
-
-async function downloadTemplate(
-  framework: Framework,
-  projectConfig: ProjectConfig,
-  projectName: string,
-  json: boolean,
-  _apiUrl?: string,
-): Promise<void> {
-  const s = !json ? clack.spinner() : null;
-  s?.start('Downloading template...');
-
-  try {
-    // Get the anon key from the OSS backend
-    const anonKey = await getAnonKey();
-    if (!anonKey) {
-      throw new Error('Failed to retrieve anon key from backend');
-    }
-
-    // Create temp directory for download
-    const tempDir = tmpdir();
-    const targetDir = projectName;
-    const templatePath = path.join(tempDir, targetDir);
-
-    // Remove existing temp directory if it exists
-    try {
-      await fs.rm(templatePath, { recursive: true, force: true });
-    } catch {
-      // Directory doesn't exist, which is fine
-    }
-
-    const frame = framework === 'nextjs' ? 'nextjs' : 'react';
-    const esc = (s: string) => process.platform === 'win32' ? `"${s.replace(/"/g, '\\"')}"` : `'${s.replace(/'/g, "'\\''")}'`;
-    const command = `npx --yes create-insforge-app@latest ${esc(targetDir)} --frame ${frame} --base-url ${esc(projectConfig.oss_host)} --anon-key ${esc(anonKey)} --skip-install`;
-
-    s?.message(`Running create-insforge-app (${frame})...`);
-
-    await execAsync(command, {
-      maxBuffer: 10 * 1024 * 1024,
-      cwd: tempDir,
-    });
-
-    // Copy template files to current directory
-    s?.message('Copying template files...');
-    const cwd = process.cwd();
-    await copyDir(templatePath, cwd);
-
-    // Cleanup temp directory
-    await fs.rm(templatePath, { recursive: true, force: true }).catch(() => {});
-
-    s?.stop('Template files downloaded');
-  } catch (err) {
-    s?.stop('Template download failed');
-    if (!json) {
-      clack.log.warn(`Failed to download template: ${(err as Error).message}`);
-      clack.log.info('You can manually set up the template later.');
-    }
-  }
 }
 
 async function downloadGitHubTemplate(
