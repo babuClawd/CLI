@@ -12,7 +12,7 @@ import type { CreateDeploymentResponse, StartDeploymentRequest, DeploymentSchema
 import { reportCliUsage } from '../../lib/skills.js';
 
 const POLL_INTERVAL_MS = 5_000;
-const POLL_TIMEOUT_MS = 120_000;
+const POLL_TIMEOUT_MS = 300_000;
 
 const EXCLUDE_PATTERNS = [
   'node_modules',
@@ -24,6 +24,22 @@ const EXCLUDE_PATTERNS = [
   'build',
   '.DS_Store',
   '.insforge',
+  // IDE and AI agent configs
+  '.claude',
+  '.agents',
+  '.augment',
+  '.kilocode',
+  '.kiro',
+  '.qoder',
+  '.qwen',
+  '.roo',
+  '.trae',
+  '.windsurf',
+  '.vercel',
+  '.turbo',
+  '.cache',
+  'skills',
+  'coverage',
 ];
 
 function shouldExclude(name: string): boolean {
@@ -206,7 +222,7 @@ export function registerDeploymentsDeployCommand(deploymentsCmd: Command): void 
             outputJson({ id: result.deploymentId, status: result.deployment?.status ?? 'building', timedOut: true });
           } else {
             clack.log.info(`Deployment ID: ${result.deploymentId}`);
-            clack.log.warn('Deployment did not finish within 2 minutes.');
+            clack.log.warn('Deployment did not finish within 5 minutes.');
             clack.log.info(`Check status with: npx @insforge/cli deployments status ${result.deploymentId}`);
           }
         }
