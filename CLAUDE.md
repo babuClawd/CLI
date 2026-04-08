@@ -86,7 +86,7 @@ cross-reference both PRs.
 ## 4. Release workflow
 
 Releases are fully automated via GitHub Actions
-([`.github/workflows/publish.yml`](../../../.github/workflows/publish.yml)).
+([`.github/workflows/publish.yml`](.github/workflows/publish.yml)).
 The CLI is published to npm as `@insforge/cli` whenever a version tag is
 pushed.
 
