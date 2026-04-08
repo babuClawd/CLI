@@ -18,7 +18,7 @@ import { handleError, getRootOpts, CLIError } from '../lib/errors.js';
 import { outputJson } from '../lib/output.js';
 import { readEnvFile } from '../lib/env.js';
 import { installSkills, reportCliUsage } from '../lib/skills.js';
-import { captureEvent, shutdownAnalytics } from '../lib/analytics.js';
+import { captureEvent, trackCommand, shutdownAnalytics } from '../lib/analytics.js';
 import { deployProject } from './deployments/deploy.js';
 import type { ProjectConfig } from '../types.js';
 
@@ -192,6 +192,8 @@ export function registerCreateCommand(program: Command): void {
         const globalConfig = getGlobalConfig();
         globalConfig.default_org_id = orgId;
         saveGlobalConfig(globalConfig);
+
+        trackCommand('create', orgId);
 
         // 2. Project name (pre-filled from directory name)
         let projectName = opts.name;
