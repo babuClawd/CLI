@@ -214,7 +214,7 @@ export function registerProjectLinkCommand(program: Command): void {
             });
             if (clack.isCancel(approach)) process.exit(0);
 
-            captureEvent(orgId, 'link_approach_selected', { approach: approach as string });
+            captureEvent(orgId ?? project.organization_id, 'link_approach_selected', { approach: approach as string });
 
             if (approach === 'template') {
               const selected = await clack.select({
@@ -230,7 +230,7 @@ export function registerProjectLinkCommand(program: Command): void {
               if (clack.isCancel(selected)) process.exit(0);
               const template = selected as string;
 
-              captureEvent(orgId, 'template_selected', { template, source: 'link' });
+              captureEvent(orgId ?? project.organization_id, 'template_selected', { template, source: 'link' });
 
               // Download template
               const githubTemplates = ['chatbot', 'crm', 'e-commerce', 'nextjs', 'react'];
@@ -239,6 +239,9 @@ export function registerProjectLinkCommand(program: Command): void {
               } else {
                 await downloadTemplate(template as Framework, projectConfig, project.name, json, apiUrl);
               }
+
+              // Only mark as applied if files were actually downloaded
+              templateApplied = !(await isDirEmpty(cwd));
 
               // Install npm dependencies
               const installSpinner = clack.spinner();
@@ -251,8 +254,6 @@ export function registerProjectLinkCommand(program: Command): void {
                 clack.log.warn(`npm install failed: ${(err as Error).message}`);
                 clack.log.info('Run `npm install` manually to install dependencies.');
               }
-
-              templateApplied = true;
             } else {
               // Blank project: seed .env.local
               try {
