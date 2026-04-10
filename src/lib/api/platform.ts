@@ -128,6 +128,92 @@ export async function reportAgentConnected(
   });
 }
 
+export interface DiagnosticRequest {
+  project_id: string;
+  question: string;
+  context: {
+    context_version: string;
+    metrics?: unknown;
+    advisor?: unknown;
+    db?: unknown;
+    logs?: unknown;
+    client_info?: {
+      cli_version?: string;
+      node_version?: string;
+      os?: string;
+    };
+  };
+}
+
+export interface DiagnosticSSEEvent {
+  type: 'delta' | 'tool_call' | 'tool_result' | 'done' | 'error';
+  data: Record<string, unknown>;
+}
+
+export type DiagnosticEventHandler = (event: DiagnosticSSEEvent) => void;
+
+/**
+ * Stream diagnostic analysis via SSE. Calls `onEvent` for each SSE event.
+ * Returns the raw Response so the caller can handle errors before streaming.
+ */
+export async function streamDiagnosticAnalysis(
+  payload: DiagnosticRequest,
+  onEvent: DiagnosticEventHandler,
+  apiUrl?: string,
+): Promise<void> {
+  const res = await platformFetch('/diagnostic/v1/analyze', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }, apiUrl);
+
+  const body = res.body;
+  if (!body) throw new CLIError('No response body from diagnostic API.');
+
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let currentEvent = '';
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      if (line.startsWith('event:')) {
+        currentEvent = line.slice(6).trim();
+      } else if (line.startsWith('data:')) {
+        const raw = line.slice(5).trim();
+        if (!raw) continue;
+        try {
+          const data = JSON.parse(raw) as Record<string, unknown>;
+          onEvent({ type: currentEvent as DiagnosticSSEEvent['type'], data });
+        } catch {
+          // skip malformed JSON
+        }
+      }
+      // blank lines or comments are ignored
+    }
+  }
+}
+
+export async function rateDiagnosticSession(
+  sessionId: string,
+  rating: 'helpful' | 'not_helpful' | 'incorrect',
+  comment?: string,
+  apiUrl?: string,
+): Promise<void> {
+  const body: Record<string, string> = { rating };
+  if (comment) body.comment = comment;
+  await platformFetch(`/diagnostic/v1/sessions/${sessionId}/rating`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }, apiUrl);
+}
+
 export async function createProject(
   orgId: string,
   name: string,
