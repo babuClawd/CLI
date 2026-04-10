@@ -25,12 +25,25 @@ import type { ProjectConfig } from '../../types.js';
 
 const execAsync = promisify(exec);
 
-/** Files that don't count as real project content */
-const NOISE_ENTRIES = new Set(['node_modules', 'skills-lock.json', 'LICENSE', 'README.md']);
+/** Files that indicate real project content exists */
+const PROJECT_MARKERS = new Set([
+  'package.json',
+  'index.html',
+  'tsconfig.json',
+  'next.config.js',
+  'next.config.ts',
+  'next.config.mjs',
+  'vite.config.ts',
+  'vite.config.js',
+  'src',
+  'app',
+  'pages',
+  'public',
+]);
 
 async function isDirEmpty(dir: string): Promise<boolean> {
   const entries = await fs.readdir(dir);
-  return entries.every((e) => e.startsWith('.') || NOISE_ENTRIES.has(e));
+  return !entries.some((e) => PROJECT_MARKERS.has(e));
 }
 
 function buildOssHost(appkey: string, region: string): string {
