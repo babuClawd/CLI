@@ -172,7 +172,27 @@ export async function streamDiagnosticAnalysis(
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
-  let currentEvent = '';
+  let currentEvent: DiagnosticSSEEvent['type'] = 'delta';
+
+  const VALID_EVENTS = new Set<string>(['delta', 'tool_call', 'tool_result', 'done', 'error']);
+
+  const processLine = (line: string): void => {
+    if (line.startsWith('event:')) {
+      const evt = line.slice(6).trim();
+      if (VALID_EVENTS.has(evt)) {
+        currentEvent = evt as DiagnosticSSEEvent['type'];
+      }
+    } else if (line.startsWith('data:')) {
+      const raw = line.slice(5).trim();
+      if (!raw) return;
+      try {
+        const data = JSON.parse(raw) as Record<string, unknown>;
+        onEvent({ type: currentEvent, data });
+      } catch {
+        // skip malformed JSON
+      }
+    }
+  };
 
   for (;;) {
     const { done, value } = await reader.read();
@@ -183,20 +203,14 @@ export async function streamDiagnosticAnalysis(
     buffer = lines.pop() ?? '';
 
     for (const line of lines) {
-      if (line.startsWith('event:')) {
-        currentEvent = line.slice(6).trim();
-      } else if (line.startsWith('data:')) {
-        const raw = line.slice(5).trim();
-        if (!raw) continue;
-        try {
-          const data = JSON.parse(raw) as Record<string, unknown>;
-          onEvent({ type: currentEvent as DiagnosticSSEEvent['type'], data });
-        } catch {
-          // skip malformed JSON
-        }
-      }
-      // blank lines or comments are ignored
+      processLine(line);
     }
+  }
+
+  // Flush remaining bytes from multi-byte sequences
+  buffer += decoder.decode();
+  if (buffer.trim()) {
+    processLine(buffer);
   }
 }
 

@@ -100,6 +100,7 @@ export function registerDiagnoseCommands(diagnoseCmd: Command): void {
     .option('--ai <question>', 'Ask AI to analyze your diagnostic data (1-2000 chars)')
     .action(async (opts, cmd) => {
       const { json, apiUrl } = getRootOpts(cmd);
+      const usageEvent = opts.ai ? 'cli.diagnose.ai' : 'cli.diagnose';
       try {
         await requireAuth(apiUrl);
         const config = getProjectConfig();
@@ -108,8 +109,6 @@ export function registerDiagnoseCommands(diagnoseCmd: Command): void {
         const projectId = config.project_id;
         const projectName = config.project_name;
         const ossMode = config.project_id === 'oss-project';
-
-        // Track diagnose usage in PostHog
         trackDiagnose(opts.ai ? 'ai' : 'report', config);
 
         // AI analysis mode
@@ -124,16 +123,7 @@ export function registerDiagnoseCommands(diagnoseCmd: Command): void {
 
           const data = await collectDiagnosticData(projectId, ossMode, apiUrl);
 
-          // Read CLI version from package.json
-          const { readFileSync } = await import('node:fs');
-          const { join } = await import('node:path');
-          const { fileURLToPath } = await import('node:url');
-          let cliVersion = 'unknown';
-          try {
-            const dir = typeof __dirname !== 'undefined' ? __dirname : fileURLToPath(new URL('.', import.meta.url));
-            const pkg = JSON.parse(readFileSync(join(dir, '../../../package.json'), 'utf-8')) as { version: string };
-            cliVersion = pkg.version;
-          } catch { /* ignore */ }
+          const cliVersion = process.env.CLI_VERSION || 'unknown';
 
           s?.stop('Data collected');
 
@@ -147,6 +137,7 @@ export function registerDiagnoseCommands(diagnoseCmd: Command): void {
           let sessionId: string | undefined;
           let fullText = '';
           const jsonEvents: Record<string, unknown>[] = [];
+          let streamError: CLIError | undefined;
 
           await streamDiagnosticAnalysis({
             project_id: projectId,
@@ -164,6 +155,14 @@ export function registerDiagnoseCommands(diagnoseCmd: Command): void {
               },
             },
           }, (event) => {
+            // Capture sessionId and errors before any early return
+            if (event.type === 'done') {
+              sessionId = event.data.sessionId as string | undefined;
+            }
+            if (event.type === 'error') {
+              streamError = new CLIError(String(event.data.message ?? 'Unknown diagnostic error'));
+            }
+
             if (json) {
               jsonEvents.push({ type: event.type, ...event.data });
               return;
@@ -181,13 +180,16 @@ export function registerDiagnoseCommands(diagnoseCmd: Command): void {
                 // silently consume tool results
                 break;
               case 'done':
-                sessionId = event.data.sessionId as string | undefined;
                 break;
               case 'error':
-                console.error(`\n  Error: ${event.data.message ?? 'Unknown error'}`);
+                console.error(`\n  Error: ${streamError?.message ?? 'Unknown error'}`);
                 break;
             }
           }, apiUrl);
+
+          if (streamError) {
+            throw streamError;
+          }
 
           if (!json) {
             // Ensure newline after streamed text
@@ -226,7 +228,7 @@ export function registerDiagnoseCommands(diagnoseCmd: Command): void {
             }
           }
 
-          await reportCliUsage('cli.diagnose.ai', true);
+          await reportCliUsage(usageEvent, true);
           return;
         }
 
@@ -305,9 +307,9 @@ export function registerDiagnoseCommands(diagnoseCmd: Command): void {
 
           console.log('');
         }
-        await reportCliUsage('cli.diagnose', true);
+        await reportCliUsage(usageEvent, true);
       } catch (err) {
-        await reportCliUsage('cli.diagnose', false);
+        await reportCliUsage(usageEvent, false);
         handleError(err, json);
       } finally {
         await shutdownAnalytics();
