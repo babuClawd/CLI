@@ -53,21 +53,22 @@ async function collectDiagnosticData(
 
   if (metricsResult.status === 'fulfilled') {
     const data = metricsResult.value;
-    metrics = data.metrics.map((m) => {
-      if (m.data.length === 0) return { metric: m.metric, latest: null, avg: null, max: null };
-      let sum = 0;
-      let max = -Infinity;
-      for (const d of m.data) {
-        sum += d.value;
-        if (d.value > max) max = d.value;
-      }
-      return {
-        metric: m.metric,
-        latest: m.data[m.data.length - 1].value,
-        avg: sum / m.data.length,
-        max,
-      };
-    });
+    metrics = data.metrics
+      .filter((m) => m.data.length > 0)
+      .map((m) => {
+        let sum = 0;
+        let max = -Infinity;
+        for (const d of m.data) {
+          sum += d.value;
+          if (d.value > max) max = d.value;
+        }
+        return {
+          metric: m.metric,
+          latest: m.data[m.data.length - 1].value,
+          avg: sum / m.data.length,
+          max,
+        };
+      });
   } else {
     errors.push(metricsResult.reason?.message ?? 'Metrics unavailable');
   }
@@ -139,22 +140,73 @@ export function registerDiagnoseCommands(diagnoseCmd: Command): void {
           const jsonEvents: Record<string, unknown>[] = [];
           let streamError: CLIError | undefined;
 
+          // Build context — transform collected data to match backend schema exactly
+          const context: Record<string, unknown> = {
+            context_version: 'diagnostic-v1',
+            client_info: {
+              cli_version: cliVersion,
+              node_version: process.version,
+              os: `${os.platform()} ${os.release()}`,
+            },
+          };
+          if (Array.isArray(data.metrics) && data.metrics.length > 0) {
+            context.metrics = data.metrics;
+          }
+          if (data.advisor) {
+            // Spec only accepts: { summary, collectorErrors: string[] }
+            const adv = data.advisor as Record<string, unknown>;
+            const summary = adv.summary as Record<string, number> | undefined;
+            const rawErrors = adv.collectorErrors as unknown[] | undefined;
+            if (summary) {
+              context.advisor = {
+                summary: {
+                  total: summary.total ?? 0,
+                  critical: summary.critical ?? 0,
+                  warning: summary.warning ?? 0,
+                  info: summary.info ?? 0,
+                },
+                collectorErrors: rawErrors?.map((e) =>
+                  typeof e === 'string' ? e : JSON.stringify(e),
+                ) ?? [],
+              };
+            }
+          }
+          if (data.db) {
+            // Stringify all values to match spec (active: string, dead_tuples: string, etc.)
+            const rawDb = data.db as Record<string, Record<string, unknown>[]>;
+            const safeDb: Record<string, Record<string, unknown>[]> = {};
+            for (const [key, rows] of Object.entries(rawDb)) {
+              safeDb[key] = rows.map((row) => {
+                const out: Record<string, unknown> = {};
+                for (const [k, v] of Object.entries(row)) {
+                  out[k] = v == null ? '' : String(v);
+                }
+                return out;
+              });
+            }
+            if (Object.keys(safeDb).length > 0) {
+              context.db = safeDb;
+            }
+          }
+          if (Array.isArray(data.logs) && data.logs.length > 0) {
+            // Spec: { source: string, total: integer, errors: [{timestamp, message, source}] }
+            context.logs = (data.logs as { source: string; total: number; errors: { timestamp: string; message: string; source: string }[] }[])
+              .map((s) => ({
+                source: s.source,
+                total: s.total,
+                errors: s.errors.map((e) => ({
+                  timestamp: e.timestamp ?? '',
+                  message: e.message ?? '',
+                  source: e.source ?? '',
+                })),
+              }));
+          }
+
           await streamDiagnosticAnalysis({
             project_id: projectId,
             question,
-            context: {
-              context_version: 'diagnostic-v1',
-              metrics: data.metrics ?? undefined,
-              advisor: data.advisor ?? undefined,
-              db: data.db ?? undefined,
-              logs: data.logs ?? undefined,
-              client_info: {
-                cli_version: cliVersion,
-                node_version: process.version,
-                os: `${os.platform()} ${os.release()}`,
-              },
-            },
-          }, (event) => {
+            context,
+          } as Parameters<typeof streamDiagnosticAnalysis>[0], (event) => {
             // Capture sessionId and errors before any early return
             if (event.type === 'done') {
               sessionId = event.data.session_id as string | undefined;
@@ -243,13 +295,13 @@ export function registerDiagnoseCommands(diagnoseCmd: Command): void {
           // Metrics section
           console.log(sectionHeader('System Metrics (last 1h)'));
           if (data.metrics) {
-            const metricsArr = data.metrics as { metric: string; latest: number | null }[];
+            const metricsArr = data.metrics as { metric: string; latest: number }[];
             if (metricsArr.length === 0) {
               console.log('  No metrics data available.');
             } else {
               const vals: Record<string, number> = {};
               for (const m of metricsArr) {
-                if (m.latest !== null) vals[m.metric] = m.latest;
+                vals[m.metric] = m.latest;
               }
               const cpu = vals.cpu_usage !== undefined ? `${vals.cpu_usage.toFixed(1)}%` : 'N/A';
               const mem = vals.memory_usage !== undefined ? `${vals.memory_usage.toFixed(1)}%` : 'N/A';

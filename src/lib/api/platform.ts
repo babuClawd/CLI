@@ -19,14 +19,22 @@ export async function platformFetch(
   if (!token) {
     throw new AuthError();
   }
-
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
     ...(options.headers as Record<string, string> ?? {}),
   };
 
-  const res = await fetch(`${baseUrl}${path}`, { ...options, headers });
+  const url = `${baseUrl}${path}`;
+  if (process.env.INSFORGE_DEBUG) {
+    console.error(`[DEBUG] ${options.method ?? 'GET'} ${url}`);
+    console.error(`[DEBUG] Headers: ${JSON.stringify(headers, null, 2)}`);
+    if (options.body) {
+      console.error(`[DEBUG] Body: ${typeof options.body === 'string' ? options.body : JSON.stringify(options.body)}`);
+    }
+  }
+
+  const res = await fetch(url, { ...options, headers });
 
   // Auto-refresh on 401
   if (res.status === 401) {
@@ -41,8 +49,9 @@ export async function platformFetch(
   }
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { error?: string };
-    throw new CLIError(err.error ?? `Request failed: ${res.status}`, res.status === 403 ? 5 : 1);
+    const err = await res.json().catch(() => ({})) as { error?: string; message?: string };
+    const msg = err.message ? `${err.error ?? res.status}: ${err.message}` : (err.error ?? `Request failed: ${res.status}`);
+    throw new CLIError(msg, res.status === 403 ? 5 : 1);
   }
 
   return res;
