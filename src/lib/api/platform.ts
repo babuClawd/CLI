@@ -1,5 +1,5 @@
 import { getAccessToken, getPlatformApiUrl } from '../config.js';
-import { AuthError, CLIError } from '../errors.js';
+import { AuthError, CLIError, formatFetchError } from '../errors.js';
 import { refreshAccessToken } from '../credentials.js';
 import type {
   ApiKeyResponse,
@@ -25,22 +25,27 @@ export async function platformFetch(
     ...(options.headers as Record<string, string> ?? {}),
   };
 
-  const url = `${baseUrl}${path}`;
+  const fullUrl = `${baseUrl}${path}`;
   if (process.env.INSFORGE_DEBUG) {
-    console.error(`[DEBUG] ${options.method ?? 'GET'} ${url}`);
+    console.error(`[DEBUG] ${options.method ?? 'GET'} ${fullUrl}`);
     console.error(`[DEBUG] Headers: ${JSON.stringify(headers, null, 2)}`);
     if (options.body) {
       console.error(`[DEBUG] Body: ${typeof options.body === 'string' ? options.body : JSON.stringify(options.body)}`);
     }
   }
 
-  const res = await fetch(url, { ...options, headers });
+  const res = await fetch(fullUrl, { ...options, headers });
 
   // Auto-refresh on 401
   if (res.status === 401) {
     const newToken = await refreshAccessToken(apiUrl);
     headers.Authorization = `Bearer ${newToken}`;
-    const retryRes = await fetch(`${baseUrl}${path}`, { ...options, headers });
+    let retryRes: Response;
+    try {
+      retryRes = await fetch(fullUrl, { ...options, headers });
+    } catch (err) {
+      throw new CLIError(formatFetchError(err, fullUrl));
+    }
     if (!retryRes.ok) {
       const err = await retryRes.json().catch(() => ({})) as { error?: string };
       throw new CLIError(err.error ?? `Request failed: ${retryRes.status}`, retryRes.status === 403 ? 5 : 1);
