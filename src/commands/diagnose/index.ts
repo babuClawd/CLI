@@ -3,7 +3,7 @@ import * as os from 'node:os';
 import * as clack from '@clack/prompts';
 import { requireAuth } from '../../lib/credentials.js';
 import { handleError, getRootOpts, CLIError, ProjectNotLinkedError } from '../../lib/errors.js';
-import { getProjectConfig } from '../../lib/config.js';
+import { getProjectConfig, FAKE_PROJECT_ID } from '../../lib/config.js';
 import { outputJson } from '../../lib/output.js';
 import { reportCliUsage } from '../../lib/skills.js';
 import { trackDiagnose, shutdownAnalytics } from '../../lib/analytics.js';
@@ -109,7 +109,7 @@ export function registerDiagnoseCommands(diagnoseCmd: Command): void {
 
         const projectId = config.project_id;
         const projectName = config.project_name;
-        const ossMode = config.project_id === 'oss-project';
+        const ossMode = config.project_id === FAKE_PROJECT_ID;
         trackDiagnose(opts.ai ? 'ai' : 'report', config);
 
         // AI analysis mode
@@ -179,7 +179,7 @@ export function registerDiagnoseCommands(diagnoseCmd: Command): void {
               safeDb[key] = rows.map((row) => {
                 const out: Record<string, unknown> = {};
                 for (const [k, v] of Object.entries(row)) {
-                  out[k] = v == null ? '' : String(v);
+                  out[k] = (v === null || v === undefined) ? '' : String(v);
                 }
                 return out;
               });
